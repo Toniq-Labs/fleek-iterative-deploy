@@ -18,3 +18,5 @@ src/
 test-files/
 tsconfig-base.json
 tsconfig.json
+
+.fleek-iterative-deploy

@@ -1,8 +1,13 @@
 {
     "name": "fleek-iterative-deploy",
-    "version": "1.0.0",
-    "description": "",
-    "keywords": [],
+    "version": "0.0.0",
+    "description": "Iteratively deploy Fleek from a git repo",
+    "keywords": [
+        "fleek",
+        "deploy",
+        "git",
+        "iterative"
+    ],
     "homepage": "https://github.com/electrovir/fleek-iterative-deploy#readme",
     "bugs": {
         "url": "https://github.com/electrovir/fleek-iterative-deploy/issues"
@@ -16,15 +21,25 @@
         "name": "electrovir",
         "url": "https://github.com/electrovir"
     },
-    "main": "index.js",
+    "bin": "dist/cli.js",
     "scripts": {
         "format": "virmator format write",
-        "prepublishOnly": "npm run test:full",
+        "prepublishOnly": "npm run test:full && npm run set-runnable",
+        "set-runnable": "chmod +x dist/cli.js",
         "spellcheck": "virmator spellcheck",
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "test:full": "npm test && npm run spellcheck && virmator format check"
+        "test": "virmator test --runInBand",
+        "test:cli": "virmator compile && npm run set-runnable && ./dist/cli.js --dry-run",
+        "test:full": "npm test && virmator compile && npm run spellcheck && virmator format check"
+    },
+    "dependencies": {
+        "@fleekhq/fleek-cli": "0.1.8",
+        "augment-vir": "1.12.0",
+        "fs-extra": "10.0.1",
+        "graphql-request": "4.2.0"
     },
     "devDependencies": {
+        "@types/fs-extra": "9.0.13",
+        "@types/node": "17.0.23",
         "virmator": "2.0.5"
     }
 }
