@@ -16,9 +16,10 @@ export async function definitelyCheckoutBranch(branchName: string): Promise<void
 
 export async function getCurrentBranchName(): Promise<string> {
     const getCurrentBranchCommand = `git symbolic-ref -q HEAD`;
-    const getCurrentBranchCommandOutput = await runShellCommand(getCurrentBranchCommand, {
-        rejectOnError: true,
-    });
+    const getCurrentBranchCommandOutput = await runShellCommand(getCurrentBranchCommand);
+
+    console.log(`Get current branch command output:`);
+    console.log(getCurrentBranchCommandOutput);
 
     return getRefBaseName(getCurrentBranchCommandOutput.stdout);
 }
