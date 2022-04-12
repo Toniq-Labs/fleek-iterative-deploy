@@ -1,5 +1,6 @@
 import {isTruthy} from 'augment-vir';
 import {runShellCommand} from 'augment-vir/dist/node-only';
+import {getRefBaseName} from './git-shared-imports';
 
 export async function doesBranchExist(branchName: string) {
     const branchNames = await listBranchNames();
@@ -38,62 +39,6 @@ export async function pushCurrentBranch() {
 export async function hardResetCurrentBranchTo(resetToThisBranchName: string): Promise<void> {
     const resetBranchCommand = `git reset --hard ${resetToThisBranchName}`;
     await runShellCommand(resetBranchCommand, {rejectOnError: true});
-}
-
-export async function getChangesInDirectory(relativeDirectoryPath: string): Promise<string[]> {
-    const changes = await getChanges();
-
-    return changes.filter((change) => {
-        const [
-            ,
-            changePath,
-        ] = change.split(/\s+/, 2);
-        if (!changePath) {
-            throw new Error(`Invalid git change split, path is empty from "${change}"`);
-        }
-        return changePath.startsWith(relativeDirectoryPath);
-    });
-}
-
-export async function getChanges(): Promise<string[]> {
-    const getChangesCommand = `git status --porcelain=v1 2>/dev/null`;
-    const getChangesOutput = await runShellCommand(getChangesCommand, {rejectOnError: true});
-
-    const modifications = getChangesOutput.stdout
-        .trim()
-        .split('\n')
-        // remove potentially empty lines
-        .filter(isTruthy);
-
-    return modifications;
-}
-
-export async function getHeadCommitHash(): Promise<string> {
-    const getCommitCommand = `git rev-parse HEAD`;
-    const getCommitCommandOutput = await runShellCommand(getCommitCommand, {rejectOnError: true});
-
-    const commitHash = getCommitCommandOutput.stdout.trim();
-    if (!commitHash) {
-        throw new Error(`Got empty commit has for HEAD.`);
-    }
-    return commitHash;
-}
-
-export async function stageEverything(): Promise<void> {
-    const addEverythingCommand = `git add .`;
-    await runShellCommand(addEverythingCommand, {
-        rejectOnError: true,
-    });
-}
-
-// returns new commit's hash
-export async function commitEverythingToCurrentBranch(commitMessage: string): Promise<string> {
-    await stageEverything();
-
-    const commitCommand = `git commit -m '${commitMessage.replace("'", "\\'")}'`;
-    await runShellCommand(commitCommand, {rejectOnError: true});
-
-    return await getHeadCommitHash();
 }
 
 export async function checkoutBranch(branchName: string): Promise<void> {
@@ -146,8 +91,4 @@ export async function listBranchNames(): Promise<string[]> {
             .filter(isTruthy)
             .map(getRefBaseName)
     );
-}
-
-function getRefBaseName(input: string): string {
-    return input.trim().replace('refs/heads/', '');
 }

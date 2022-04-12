@@ -6,13 +6,13 @@ import {copyFilesToDir} from './augments/fs';
 import {buildOutputForCopyingFrom, readmeForIterationBranchFile} from './file-paths';
 import {waitUntilAllDeploysAreFinished, waitUntilFleekDeployStarted} from './fleek';
 import {
-    commitEverythingToCurrentBranch,
     definitelyCheckoutBranch,
-    getChangesInDirectory,
     getCurrentBranchName,
     hardResetCurrentBranchTo,
     pushCurrentBranch,
-} from './git';
+} from './git/git-branches';
+import {getChangesInDirectory} from './git/git-changes';
+import {commitEverythingToCurrentBranch} from './git/git-commits';
 
 export type DeployIterativelyInputs = {
     buildOutputBranchName: string;
