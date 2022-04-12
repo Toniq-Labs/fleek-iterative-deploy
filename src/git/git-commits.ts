@@ -1,4 +1,5 @@
 import {runShellCommand} from 'augment-vir/dist/node-only';
+import {safeInterpolate} from '../augments/shell';
 
 export async function getHeadCommitHash(): Promise<string> {
     const getCommitCommand = `git rev-parse HEAD`;
@@ -21,7 +22,7 @@ export async function stageEverything(): Promise<void> {
 export async function commitEverythingToCurrentBranch(commitMessage: string): Promise<string> {
     await stageEverything();
 
-    const commitCommand = `git commit -m '${commitMessage.replace("'", "\\'")}'`;
+    const commitCommand = `git commit -m ${safeInterpolate(commitMessage)}`;
     await runShellCommand(commitCommand, {rejectOnError: true});
 
     return await getHeadCommitHash();

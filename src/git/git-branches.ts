@@ -1,5 +1,6 @@
 import {isTruthy} from 'augment-vir';
 import {runShellCommand} from 'augment-vir/dist/node-only';
+import {safeInterpolate} from '../augments/shell';
 import {getRefBaseName} from './git-shared-imports';
 
 export async function doesBranchExist(branchName: string) {
@@ -19,16 +20,15 @@ export async function getCurrentBranchName(): Promise<string> {
     const getCurrentBranchCommand = `git symbolic-ref -q HEAD`;
     const getCurrentBranchCommandOutput = await runShellCommand(getCurrentBranchCommand);
 
-    console.log(`Get current branch command output:`);
-    console.log(getCurrentBranchCommandOutput);
-
     return getRefBaseName(getCurrentBranchCommandOutput.stdout);
 }
 
 export async function pushCurrentBranch() {
     const currentBranchName = await getCurrentBranchName();
 
-    const pushBranchCommand = `git push -u origin ${currentBranchName}:${currentBranchName}`;
+    const pushBranchCommand = `git push -u origin ${safeInterpolate(
+        currentBranchName,
+    )}:${safeInterpolate(currentBranchName)}`;
     const pushBranchCommandOutput = await runShellCommand(pushBranchCommand);
 
     if (pushBranchCommandOutput.exitCode !== 0) {
@@ -37,17 +37,17 @@ export async function pushCurrentBranch() {
 }
 
 export async function hardResetCurrentBranchTo(resetToThisBranchName: string): Promise<void> {
-    const resetBranchCommand = `git reset --hard ${resetToThisBranchName}`;
+    const resetBranchCommand = `git reset --hard ${safeInterpolate(resetToThisBranchName)}`;
     await runShellCommand(resetBranchCommand, {rejectOnError: true});
 }
 
 export async function checkoutBranch(branchName: string): Promise<void> {
-    const checkoutBranchCommand = `git checkout ${branchName}`;
+    const checkoutBranchCommand = `git checkout ${safeInterpolate(branchName)}`;
     await runShellCommand(checkoutBranchCommand, {rejectOnError: true});
 }
 
 export async function createBranch(newBranchName: string): Promise<void> {
-    const createBranchCommand = `git branch ${newBranchName}`;
+    const createBranchCommand = `git branch ${safeInterpolate(newBranchName)}`;
     await runShellCommand(createBranchCommand, {rejectOnError: true});
 }
 
@@ -68,12 +68,12 @@ export async function deleteBranch(
     if (!doesBranchExist(branchName)) {
         throw new Error(`Branch "${branchName}" does not exist for deletion.`);
     }
-    const deleteBranchCommand = `git branch -d ${branchName} ${force ? '-f' : ''}`;
+    const deleteBranchCommand = `git branch -d ${safeInterpolate(branchName)} ${force ? '-f' : ''}`;
     const deleteBranchCommandOutput = await runShellCommand(deleteBranchCommand);
 
     if (deleteBranchCommandOutput.exitCode !== 0) {
         console.error({deleteBranchCommandOutput});
-        throw new Error(`delete branch command failed: ${deleteBranchCommandOutput.stderr}`);
+        throw new Error(`delete branch command failed: "${deleteBranchCommandOutput.stderr}"`);
     }
 }
 
