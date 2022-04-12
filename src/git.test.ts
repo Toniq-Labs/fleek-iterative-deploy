@@ -128,7 +128,7 @@ describe(checkoutBranch.name, () => {
 });
 
 describe(definitelyCheckoutBranch.name, () => {
-    it('should be able to checkout a new branch', async () => {
+    it('should create and checkout a branch', async () => {
         const newBranchName = await createTestBranch();
         const beforeBranch = await getCurrentBranchName();
 
