@@ -46,17 +46,22 @@ describe(__filename, () => {
         };
     }
 
-    gitIt('should set default inputs correctly', async () => {
-        const testCommand = 'npm run "test:cli"';
-        const commandOutput = await runShellCommand(testCommand);
-        if (commandOutput.exitCode !== 0) {
-            throw new Error(
-                `"${testCommand}" failed with exit code "${commandOutput.exitCode}": ${commandOutput.stderr}`,
-            );
-        }
+    gitIt(
+        'should set default inputs correctly',
+        async () => {
+            const testCommand = 'npm run "test:cli"';
+            const commandOutput = await runShellCommand(testCommand);
+            if (commandOutput.exitCode !== 0) {
+                throw new Error(
+                    `"${testCommand}" failed with exit code "${commandOutput.exitCode}": ${commandOutput.stderr}`,
+                );
+            }
 
-        const inputs = parseInputLogging(commandOutput.stdout);
+            const inputs = parseInputLogging(commandOutput.stdout);
 
-        expect(inputs).toEqual(defaultInputs);
-    });
+            expect(inputs).toEqual(defaultInputs);
+        },
+        // long timeout for GitHub Actions which is very slow
+        20000,
+    );
 });
