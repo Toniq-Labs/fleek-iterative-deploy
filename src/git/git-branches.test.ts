@@ -14,10 +14,11 @@ import {
     deleteBranchAndGoBackToPreviousBranch,
     expectBranchNoExist,
     expectOnBranch,
+    gitIt,
 } from './git-shared-imports-for-testing';
 
 describe(listBranchNames.name, () => {
-    it('should list at least the main branch', async () => {
+    gitIt('should list at least the main branch', async () => {
         const branchNames = await listBranchNames();
         expect(branchNames.length).toBeGreaterThan(0);
         expect(branchNames.includes('main')).toBe(true);
@@ -25,7 +26,7 @@ describe(listBranchNames.name, () => {
 });
 
 describe(getCurrentBranchName.name, () => {
-    it('should be included in the list of branch names', async () => {
+    gitIt('should be included in the list of branch names', async () => {
         const currentBranch = await getCurrentBranchName();
         const allBranches = await listBranchNames();
 
@@ -34,7 +35,7 @@ describe(getCurrentBranchName.name, () => {
 });
 
 describe(`${createBranch.name} and ${deleteBranch.name}`, () => {
-    it('should create and delete a new branch', async () => {
+    gitIt('should create and delete a new branch', async () => {
         const newBranchName = await createTestBranch();
 
         await deleteBranch(newBranchName);
@@ -43,7 +44,7 @@ describe(`${createBranch.name} and ${deleteBranch.name}`, () => {
 });
 
 describe(checkoutBranch.name, () => {
-    it('should be able to checkout a new branch', async () => {
+    gitIt('should be able to checkout a new branch', async () => {
         const newBranchName = await createTestBranch();
         const beforeCheckoutBranch = await getCurrentBranchName();
 
@@ -55,7 +56,7 @@ describe(checkoutBranch.name, () => {
 });
 
 describe(definitelyCheckoutBranch.name, () => {
-    it('should create and checkout a branch', async () => {
+    gitIt('should create and checkout a branch', async () => {
         const newBranchName = await createTestBranch();
         const beforeBranch = await getCurrentBranchName();
 
@@ -67,7 +68,7 @@ describe(definitelyCheckoutBranch.name, () => {
 });
 
 describe(hardResetCurrentBranchTo.name, () => {
-    it('should reset a new branch', async () => {
+    gitIt('should reset a new branch', async () => {
         const {beforeBranch, newBranch} = await createFileAndCommitEverythingToNewBranchTest();
 
         const beforeResetCommit = await getHeadCommitHash();

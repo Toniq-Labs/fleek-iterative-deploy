@@ -12,6 +12,7 @@ import {
 } from './git-branches';
 import {getChanges} from './git-changes';
 import {commitEverythingToCurrentBranch} from './git-commits';
+import {setFleekIterativeDeployGitUser} from './set-fleek-iterative-deploy-git-user';
 
 export async function createFileAndCommitEverythingToNewBranchTest() {
     // make sure we're clean before running the test
@@ -101,4 +102,20 @@ export async function deleteBranchAndGoBackToPreviousBranch(
     // this needs to get forced to prevent "not fully merged" errors.
     await deleteBranch(currentBranch, deleteBranchOptions);
     await expectBranchNoExist(currentBranch);
+}
+
+/** Makes sure a git user is set so that git tests function correctly. */
+export function gitIt(
+    name: string,
+    callback: (() => void | undefined) | (() => Promise<unknown>),
+    timeout?: number,
+) {
+    it(
+        name,
+        async () => {
+            await setFleekIterativeDeployGitUser();
+            await callback();
+        },
+        timeout,
+    );
 }

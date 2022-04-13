@@ -13,7 +13,7 @@ import {
 } from './git/git-branches';
 import {getChangesInDirectory} from './git/git-changes';
 import {commitEverythingToCurrentBranch} from './git/git-commits';
-import {setGitConfigValues} from './git/git-config';
+import {setFleekIterativeDeployGitUser} from './git/set-fleek-iterative-deploy-git-user';
 
 export type DeployIterativelyInputs = {
     buildOutputBranchName: string;
@@ -30,10 +30,7 @@ export async function deployIteratively({
 }: DeployIterativelyInputs) {
     const totalStartTimeMs: number = Date.now();
 
-    await setGitConfigValues({
-        'user.name': 'fleek-iterative-deploy runner',
-        'user.email': 'N/A',
-    });
+    await setFleekIterativeDeployGitUser();
 
     const triggerBranchName = await getCurrentBranchName();
 

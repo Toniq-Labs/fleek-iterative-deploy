@@ -6,10 +6,10 @@ import {directoryForFleekIterativeDeployFiles} from '../file-paths';
 import {createNewTestFile} from '../test/create-test-file';
 import {getChanges, getChangesInDirectory} from './git-changes';
 import {stageEverything} from './git-commits';
-import {expectChangesToInclude, expectNoChanges} from './git-shared-imports-for-testing';
+import {expectChangesToInclude, expectNoChanges, gitIt} from './git-shared-imports-for-testing';
 
 describe(getChanges, () => {
-    it('should show changes', async () => {
+    gitIt('should show changes', async () => {
         await expectNoChanges();
 
         const testFilePath = await createNewTestFile();
@@ -25,7 +25,7 @@ describe(getChanges, () => {
 });
 
 describe(getChangesInDirectory.name, () => {
-    it('should only return changes for the given directory', async () => {
+    gitIt('should only return changes for the given directory', async () => {
         function getPathJustBeforeDeployFilesDir(input: string): string {
             const dir = dirname(input);
             if (dir === '/' || dir === '.' || !dir) {

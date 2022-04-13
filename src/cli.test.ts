@@ -1,5 +1,6 @@
 import {runShellCommand} from 'augment-vir/dist/node-only';
 import {defaultInputs} from './cli';
+import {gitIt} from './git/git-shared-imports-for-testing';
 import {DeployIterativelyInputs} from './iterative-deploy';
 
 describe(__filename, () => {
@@ -45,7 +46,7 @@ describe(__filename, () => {
         };
     }
 
-    it('should set default inputs correctly', async () => {
+    gitIt('should set default inputs correctly', async () => {
         const testCommand = 'npm run "test:cli"';
         const commandOutput = await runShellCommand(testCommand);
         if (commandOutput.exitCode !== 0) {
