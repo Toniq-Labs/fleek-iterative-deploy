@@ -28,7 +28,7 @@
         "set-runnable": "chmod +x dist/cli.js",
         "spellcheck": "virmator spellcheck",
         "test": "virmator test --runInBand",
-        "test:cli": "virmator compile && npm run set-runnable && ./dist/cli.js --dry-run",
+        "test:cli": "virmator compile && npm run set-runnable && dist/cli.js --dry-run",
         "test:full": "npm test && virmator compile && npm run spellcheck && virmator format check"
     },
     "dependencies": {
