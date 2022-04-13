@@ -1,5 +1,5 @@
 import {isTruthy} from 'augment-vir';
-import {runShellCommand} from 'augment-vir/dist/node-only';
+import {runShellCommand, toPosixPath} from 'augment-vir/dist/node-only';
 
 export async function getChangesInDirectory(relativeDirectoryPath: string): Promise<string[]> {
     const changes = await getChanges();
@@ -12,7 +12,7 @@ export async function getChangesInDirectory(relativeDirectoryPath: string): Prom
         if (!changePath) {
             throw new Error(`Invalid git change split, path is empty from "${change}"`);
         }
-        return changePath.startsWith(relativeDirectoryPath);
+        return changePath.startsWith(toPosixPath(relativeDirectoryPath));
     });
 }
 
