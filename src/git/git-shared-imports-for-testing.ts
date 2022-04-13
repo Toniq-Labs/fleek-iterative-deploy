@@ -1,4 +1,4 @@
-import {randomString} from 'augment-vir/dist/node-only';
+import {randomString, toPosixPath} from 'augment-vir/dist/node-only';
 import {relative} from 'path';
 import {createNewTestFile} from '../test/create-test-file';
 import {
@@ -79,7 +79,7 @@ export async function expectChangesToInclude(filePaths: string[] | string): Prom
     expect(rawChanges.length).toBeGreaterThanOrEqual(filePaths.length);
     const joinedChanges = rawChanges.join('\n');
     filePaths.forEach((filePath) => {
-        const relativePath = relative(process.cwd(), filePath);
+        const relativePath = toPosixPath(relative(process.cwd(), filePath));
         const includes = joinedChanges.includes(relativePath);
         if (!includes) {
             console.error(`changes did not include ${relativePath}`);
