@@ -1,54 +1,48 @@
+import {Site} from '@fleekhq/fleek-cli/dist/services/api/models';
 import {runShellCommand} from 'augment-vir/dist/node-only';
-import {defaultInputs} from './cli';
-import {gitIt} from './git/git-shared-imports-for-testing';
+import {afterInputs, afterSiteList, beforeInputs, beforeSiteList, defaultInputs} from './cli';
+import {getTeamSites} from './fleek';
 import {DeployIterativelyInputs} from './iterative-deploy';
+import {tryToSetEnvVariables} from './test/fleek-testing';
+import {gitIt} from './test/git-shared-imports-for-testing';
 
 describe(__filename, () => {
     function parseInputLogging(stdout: string): DeployIterativelyInputs {
-        function extractEnding(line: string): string {
-            const ending = line
-                .replace(/\s+\w+:\s+['"]?/, '')
-                .trim()
-                .replace(/['"]?,?$/, '');
-            if (!ending) {
-                throw new Error(`Failed to extract ending from "${line}"`);
-            }
-            return ending;
+        const scopedOutput = stdout
+            .trim()
+            .replaceAll('\n', ' ')
+            .replace(new RegExp(`^.*${beforeInputs}`), '')
+            .replace(new RegExp(`${afterInputs}.*$`), '')
+            .trim();
+
+        try {
+            const loggedInputs = JSON.parse(scopedOutput);
+            return loggedInputs;
+        } catch (error) {
+            console.error(`Erroneous input logging JSON input below ===================`);
+            console.error(scopedOutput);
+            console.error('============================================================');
+            throw error;
         }
+    }
 
-        const lines = stdout.trim().split('\n');
+    function parseSiteLogging(stdout: string): Site[] {
+        const scopedOutput = stdout
+            .trim()
+            .replaceAll('\n', ' ')
+            .replace(new RegExp(`^.*${beforeSiteList}`), '')
+            .replace(new RegExp(`${afterSiteList}.*$`), '')
+            .trim();
 
-        let buildCommand: string = '';
-        let buildOutputBranchName: string = '';
-        let fleekDeployDir: string = '';
-        let filesPerUpload: number = -1;
-        let gitRemoteName: string = '';
-
-        lines.forEach((line) => {
-            if (line.trim().startsWith('buildCommand')) {
-                buildCommand = extractEnding(line);
-            }
-            if (line.trim().startsWith('buildOutputBranchName')) {
-                buildOutputBranchName = extractEnding(line);
-            }
-            if (line.trim().startsWith('fleekDeployDir')) {
-                fleekDeployDir = extractEnding(line);
-            }
-            if (line.trim().startsWith('filesPerUpload')) {
-                filesPerUpload = Number(extractEnding(line));
-            }
-            if (line.trim().startsWith('gitRemoteName')) {
-                gitRemoteName = extractEnding(line);
-            }
-        });
-
-        return {
-            buildCommand,
-            buildOutputBranchName,
-            fleekDeployDir,
-            filesPerUpload,
-            gitRemoteName,
-        };
+        try {
+            const parsedSiteList = JSON.parse(scopedOutput);
+            return parsedSiteList;
+        } catch (error) {
+            console.error(`Erroneous site list JSON input below =======================`);
+            console.error(scopedOutput);
+            console.error('============================================================');
+            throw error;
+        }
     }
 
     gitIt(
@@ -65,6 +59,32 @@ describe(__filename, () => {
             const inputs = parseInputLogging(commandOutput.stdout);
 
             expect(inputs).toEqual(defaultInputs);
+        },
+        // long timeout for GitHub Actions which is very slow
+        20000,
+    );
+
+    gitIt(
+        'should get site list',
+        async () => {
+            await tryToSetEnvVariables();
+            const testCommand = 'npm run "test:sites"';
+            const commandOutput = await runShellCommand(testCommand);
+            if (commandOutput.exitCode !== 0) {
+                throw new Error(
+                    `"${testCommand}" failed with exit code "${commandOutput.exitCode}": ${commandOutput.stderr}`,
+                );
+            }
+
+            const siteOutput = parseSiteLogging(commandOutput.stdout);
+
+            expect(siteOutput).toBeDefined();
+            expect(Array.isArray(siteOutput)).toBe(true);
+            expect(siteOutput.length).toBeGreaterThan(0);
+
+            const sites = await getTeamSites();
+
+            expect(siteOutput).toEqual(sites);
         },
         // long timeout for GitHub Actions which is very slow
         20000,

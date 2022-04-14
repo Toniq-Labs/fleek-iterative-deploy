@@ -1,6 +1,5 @@
 import {randomString, toPosixPath} from 'augment-vir/dist/node-only';
 import {relative} from 'path';
-import {createNewTestFile} from '../test/create-test-file';
 import {
     checkoutBranch,
     createBranch,
@@ -10,15 +9,16 @@ import {
     doesBranchExist,
     getCurrentBranchName,
     RemoteOrLocalOptions,
-} from './git-branches';
-import {getChanges} from './git-changes';
+} from '../git/git-branches';
+import {getChanges} from '../git/git-changes';
 import {
     commitEverythingToCurrentBranch,
     getCommitDifference,
     getHeadCommitHash,
     getLastNCommits,
-} from './git-commits';
-import {setFleekIterativeDeployGitUser} from './set-fleek-iterative-deploy-git-user';
+} from '../git/git-commits';
+import {setFleekIterativeDeployGitUser} from '../git/set-fleek-iterative-deploy-git-user';
+import {createNewTestFile} from './create-test-file';
 
 export async function createFileAndCommitEverythingToNewBranchTest() {
     // make sure we're clean before running the test

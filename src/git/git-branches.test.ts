@@ -1,5 +1,14 @@
 import {randomString} from 'augment-vir/dist/node-only';
 import {
+    createFileAndCommitEverythingToNewBranchTest,
+    createTestBranch,
+    deleteBranchAndGoBackToPreviousBranch,
+    expectBranchExists,
+    expectBranchNoExist,
+    expectOnBranch,
+    gitIt,
+} from '../test/git-shared-imports-for-testing';
+import {
     checkoutBranch,
     createBranch,
     definitelyCheckoutBranch,
@@ -19,15 +28,6 @@ import {
     getLastNCommits,
     makeEmptyCommit,
 } from './git-commits';
-import {
-    createFileAndCommitEverythingToNewBranchTest,
-    createTestBranch,
-    deleteBranchAndGoBackToPreviousBranch,
-    expectBranchExists,
-    expectBranchNoExist,
-    expectOnBranch,
-    gitIt,
-} from './git-shared-imports-for-testing';
 
 describe(listBranchNames.name, () => {
     gitIt('should list at least the main branch', async () => {

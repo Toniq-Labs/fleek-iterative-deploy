@@ -1,10 +1,3 @@
-import {checkoutBranch, getCurrentBranchName} from './git-branches';
-import {
-    commitEverythingToCurrentBranch,
-    getHeadCommitHash,
-    getLastNCommits,
-    makeEmptyCommit,
-} from './git-commits';
 import {
     createFileAndCommitEverythingToNewBranchTest,
     createTestBranch,
@@ -13,7 +6,14 @@ import {
     expectNotOnBranch,
     expectOnBranch,
     gitIt,
-} from './git-shared-imports-for-testing';
+} from '../test/git-shared-imports-for-testing';
+import {checkoutBranch, getCurrentBranchName} from './git-branches';
+import {
+    commitEverythingToCurrentBranch,
+    getHeadCommitHash,
+    getLastNCommits,
+    makeEmptyCommit,
+} from './git-commits';
 
 describe(commitEverythingToCurrentBranch.name, () => {
     gitIt('should commit everything to the current branch', async () => {

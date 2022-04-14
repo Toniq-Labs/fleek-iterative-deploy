@@ -1,6 +1,7 @@
 {
     "import": ".cspell-base.json",
     "words": [
+        "dryrun",
         "fleekhq",
         "refname"
     ]

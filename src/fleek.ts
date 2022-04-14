@@ -1,17 +1,15 @@
 import DIContainer from '@fleekhq/fleek-cli/dist/dependency-injection/container';
+import {ApiService} from '@fleekhq/fleek-cli/dist/services/api/api.service';
 import {Deploy, DeployStatus} from '@fleekhq/fleek-cli/dist/services/api/models';
 import AuthenticationService from '@fleekhq/fleek-cli/dist/services/authentication/authentication.service';
 import {EnvironmentService} from '@fleekhq/fleek-cli/dist/services/environment/environment.service';
 import {wait} from 'augment-vir';
 import {gql, GraphQLClient, RequestDocument} from 'graphql-request';
-import {readEnvValue} from './augments/env';
+import {checkEnvVar, fleekApiEnvKey, fleekTeamIdEnvKey, readEnvVar} from './env';
 
 const tenSecondsMs = 10000;
 const oneMinuteMs = 60000;
 const tenMinutesMs = 10 * oneMinuteMs;
-const fleekApiEnvKey = 'FLEEK_API_KEY';
-const fleekTeamIdEnvKey = 'FLEEK_TIME_ID';
-const fleekSiteIdEnvKey = 'FLEEK_SITE_ID';
 
 export async function waitUntilFleekDeployStarted(thresholdTimestamp: number): Promise<string> {
     await wait(tenSecondsMs);
@@ -20,7 +18,7 @@ export async function waitUntilFleekDeployStarted(thresholdTimestamp: number): P
         throw new Error(`Waited 10 minutes but Fleek deploy has still not started.`);
     }
 
-    const deploys = await getSiteDeploys(getFleekSiteId());
+    const deploys = await getSiteDeploys(readEnvVar(fleekTeamIdEnvKey));
     const afterStartTimeDeploys = deploys.filter((deploy) => {
         const deployStartTime: number = Date.parse(deploy.startedAt);
         if (isNaN(deployStartTime)) {
@@ -47,7 +45,7 @@ export async function waitUntilFleekDeployStarted(thresholdTimestamp: number): P
 export async function waitUntilAllDeploysAreFinished(trackingDeployId: string): Promise<void> {
     await wait(tenSecondsMs);
 
-    const deploys = await getSiteDeploys(getFleekSiteId());
+    const deploys = await getSiteDeploys(readEnvVar(fleekTeamIdEnvKey));
     const pendingDeploys = deploys.filter((deploy) => {
         return deploy.status === DeployStatus.InProgress;
     });
@@ -71,21 +69,9 @@ export async function waitUntilAllDeploysAreFinished(trackingDeployId: string): 
     }
 }
 
-function checkFleekApiKey(): void {
-    readEnvValue(fleekApiEnvKey, 'Fleek API key');
-}
-
-function getFleekTeamId(): string {
-    return readEnvValue(fleekTeamIdEnvKey, 'Fleek team id');
-}
-
-function getFleekSiteId(): string {
-    return readEnvValue(fleekSiteIdEnvKey, 'Fleek site id');
-}
-
 async function makeRequest(query: RequestDocument, variables: any) {
-    checkFleekApiKey();
-    const teamId = getFleekTeamId();
+    checkEnvVar(fleekApiEnvKey);
+    const teamId = readEnvVar(fleekTeamIdEnvKey);
 
     const apiUrl = await DIContainer.get(EnvironmentService).getCurrentApiUrl();
     const apiKey = await DIContainer.get(AuthenticationService).getTeamApiKey(teamId);
@@ -95,6 +81,13 @@ async function makeRequest(query: RequestDocument, variables: any) {
         },
     });
     return client.request(query, variables);
+}
+
+export async function getTeamSites() {
+    checkEnvVar(fleekApiEnvKey);
+    const fleekApiService = DIContainer.get(ApiService);
+    const sites = await fleekApiService.getSitesByTeam(readEnvVar(fleekTeamIdEnvKey));
+    return sites;
 }
 
 type FullDeploy = Deploy & {

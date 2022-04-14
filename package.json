@@ -29,7 +29,8 @@
         "spellcheck": "virmator spellcheck",
         "test": "virmator test --runInBand",
         "test:cli": "virmator compile && npm run set-runnable && node ./dist/cli.js --dry-run",
-        "test:full": "npm test && virmator compile && npm run spellcheck && virmator format check"
+        "test:full": "npm test && virmator compile && npm run spellcheck && virmator format check",
+        "test:sites": "virmator compile && npm run set-runnable && node ./dist/cli.js --sites"
     },
     "dependencies": {
         "@fleekhq/fleek-cli": "0.1.8",

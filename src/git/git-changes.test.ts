@@ -4,9 +4,13 @@ import {readdir, unlink} from 'fs/promises';
 import {dirname, relative} from 'path';
 import {directoryForFleekIterativeDeployFiles} from '../file-paths';
 import {createNewTestFile} from '../test/create-test-file';
+import {
+    expectChangesToInclude,
+    expectNoChanges,
+    gitIt,
+} from '../test/git-shared-imports-for-testing';
 import {getChanges, getChangesInDirectory} from './git-changes';
 import {stageEverything} from './git-commits';
-import {expectChangesToInclude, expectNoChanges, gitIt} from './git-shared-imports-for-testing';
 
 describe(getChanges, () => {
     gitIt('should show changes', async () => {
