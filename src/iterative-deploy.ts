@@ -1,5 +1,6 @@
 import {runShellCommand} from 'augment-vir/dist/node-only';
-import {copy, remove} from 'fs-extra';
+import {copy, ensureDir, remove} from 'fs-extra';
+import {readdir} from 'fs/promises';
 import {relative} from 'path';
 import {divideArray} from './augments/array';
 import {copyFilesToDir, removeMatchFromFile} from './augments/fs';
@@ -13,12 +14,13 @@ import {
     pushBranch,
     updateAllFromRemote,
 } from './git/git-branches';
-import {getChangesInDirectory} from './git/git-changes';
+import {getChanges, getChangesInDirectory} from './git/git-changes';
 import {
     cherryPickCommit,
     commitEverythingToCurrentBranch,
     getCommitDifference,
     getCommitMessage,
+    getHeadCommitHash,
 } from './git/git-commits';
 import {setFleekIterativeDeployGitUser} from './git/set-fleek-iterative-deploy-git-user';
 
@@ -47,24 +49,43 @@ export async function deployIteratively({
 
     await updateAllFromRemote();
 
+    console.info(`Checking out "${triggerBranch}"`);
     await checkoutBranch(triggerBranch);
 
     const triggerBranchName = await getCurrentBranchName();
-    console.info({triggerBranchName});
-
-    if (!triggerBranch) {
-        throw new Error(`No trigger branch name.`);
+    if (!triggerBranchName) {
+        throw new Error(`Could not find current branch name.`);
     }
+    console.info({triggerBranchName});
+    const triggerBranchHeadHash = await getHeadCommitHash();
+    const triggerBranchHeadMessage = await getCommitMessage(triggerBranchHeadHash);
+    console.info(`on commit:
+    ${triggerBranchHeadHash}
+with message:
+    ${triggerBranchHeadMessage}`);
 
+    console.info(`Checking out ${buildOutputBranchName}`);
     await definitelyCheckoutBranch({
         branchName: buildOutputBranchName,
         allowFromRemote: true,
         remoteName: gitRemoteName,
     });
+    const buildOutputBranchHeadHash = await getHeadCommitHash();
+    const buildOutputBranchHeadMessage = await getCommitMessage(buildOutputBranchHeadHash);
+    console.info(`Now on branch:
+    ${await getCurrentBranchName()}
+commit:
+    ${buildOutputBranchHeadHash}
+message:
+    ${buildOutputBranchHeadMessage}`);
+
     const previousBuildCommits = await getCommitDifference({
         notOnThisBranch: triggerBranchName,
         onThisBranch: buildOutputBranchName,
     });
+    console.info(`previous build commits:
+    ${previousBuildCommits.join('\n    ')}`);
+
     const previousBuildCommitsWithMessages = await Promise.all(
         previousBuildCommits.map(async (commitHash) => {
             return {
@@ -74,46 +95,83 @@ export async function deployIteratively({
         }),
     );
     const lastFullBuildCommit = previousBuildCommitsWithMessages.find((commitWithMessage) => {
-        return commitWithMessage.message === allBuildOutputCommitMessage;
+        return commitWithMessage.message.startsWith(allBuildOutputCommitMessage);
     });
+    console.info({lastFullBuildCommit});
+    console.info(
+        `Resetting current branch ("${await getCurrentBranchName()}") to trigger branch "${triggerBranchName}" to get latest changes.`,
+    );
     await hardResetCurrentBranchTo(triggerBranchName, {
         remote: true,
         remoteName: gitRemoteName,
     });
+
     if (lastFullBuildCommit) {
-        console.log(`Last full build commit detected: ${lastFullBuildCommit}`);
+        console.info(`cherry-picking last full build commit:
+    ${lastFullBuildCommit.hash}
+with commit message:
+    ${lastFullBuildCommit.message}`);
         await cherryPickCommit(lastFullBuildCommit.hash);
     }
+    console.info(`Running build command: ${buildCommand}`);
     const buildCommandOutput = await runShellCommand(buildCommand, {
-        stderrCallback: console.error,
-        stdoutCallback: console.log,
+        stderrCallback: (buffer) => console.error(buffer.toString()),
+        stdoutCallback: (buffer) => console.info(buffer.toString()),
     });
 
+    const fileCountInFleekDeployDir = (await readdir(fleekDeployDir)).length;
+    console.info(
+        `Build done. "${fileCountInFleekDeployDir}" files now in fleek deploy dir "${fleekDeployDir}"`,
+    );
+
     if (buildCommandOutput.exitCode !== 0) {
-        throw new Error(`Build command failed with exit code ${buildCommandOutput.exitCode}`);
+        throw new Error(
+            `Build command failed with exit code ${buildCommandOutput.exitCode}: ${buildCommandOutput.stderr}`,
+        );
     }
+    console.info(`Copying over README.md file now...`);
     await copy(readmeForIterationBranchFile, 'README.md');
 
+    console.info(`Clearing the temporary build output directory "${buildOutputForCopyingFrom}"`);
     // clear out the directory we'll be copying from
     await remove(buildOutputForCopyingFrom);
+    await ensureDir(buildOutputForCopyingFrom);
+    console.info(`Copying "${fleekDeployDir}" to "${buildOutputForCopyingFrom}"`);
     // put all the build output into the directory we'll copy from
     await copy(fleekDeployDir, buildOutputForCopyingFrom);
+    console.info(`Clearing "${fleekDeployDir}"`);
     await remove(fleekDeployDir);
+    await ensureDir(fleekDeployDir);
 
     const relativeCopyFromDir = relative(process.cwd(), buildOutputForCopyingFrom);
 
+    console.info(`Getting changes in "${relativeCopyFromDir}"`);
+    const allChangesForDebugging = await getChanges();
+    console.log({allChangesForDebugging});
     const changedFiles: Readonly<string[]> = await getChangesInDirectory(relativeCopyFromDir);
-
-    console.info(`Changed files detected:\n  ${changedFiles.join('\n  ')}`);
-
-    await removeMatchFromFile({fileName: '.gitignore', match: fleekDeployDir});
-
-    const newFullBuildCommitHash = await commitEverythingToCurrentBranch(
-        allBuildOutputCommitMessage,
+    console.info(
+        `"${changedFiles.length}" changed files detected:\n  ${changedFiles.join('\n  ')}`,
     );
-    console.log(`Committed built outputs in "${newFullBuildCommitHash}"`);
+
+    console.info(`un-git-ignoring "${fleekDeployDir}"`);
+    const wasRemoved = await removeMatchFromFile({fileName: '.gitignore', match: fleekDeployDir});
+
+    if (wasRemoved) {
+        console.info(`Successfully removed git-ignore for "${fleekDeployDir}"`);
+    } else {
+        console.info(
+            `Failed to remove git-ignore for "${fleekDeployDir}". Maybe it wasn't git-ignored in the first place?`,
+        );
+    }
+
+    console.info(`Committing everything...`);
+    const newFullBuildCommitMessage = `${allBuildOutputCommitMessage} ${new Date().toISOString()}`;
+    const newFullBuildCommitHash = await commitEverythingToCurrentBranch(newFullBuildCommitMessage);
+    console.info(`Committed all build outputs in "${newFullBuildCommitHash}" with message
+    ${newFullBuildCommitMessage}`);
 
     const chunkedFiles: Readonly<string[][]> = divideArray(filesPerUpload, changedFiles);
+    console.info(`Changed files separated into "${chunkedFiles.length}" chunks.`);
 
     await chunkedFiles.reduce(async (lastPromise, currentFiles, index) => {
         await lastPromise;
@@ -123,6 +181,7 @@ export async function deployIteratively({
             )}`,
         );
         await remove(fleekDeployDir);
+        await ensureDir(fleekDeployDir);
         await copyFilesToDir({
             copyToDir: fleekDeployDir,
             files: currentFiles,
