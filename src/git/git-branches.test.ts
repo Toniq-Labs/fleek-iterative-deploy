@@ -1,3 +1,4 @@
+import {randomString} from 'augment-vir/dist/node-only';
 import {
     checkoutBranch,
     createBranch,
@@ -10,7 +11,14 @@ import {
     pushBranch,
     rebaseCurrentBranchFromRef,
 } from './git-branches';
-import {getHeadCommitHash, makeEmptyCommit} from './git-commits';
+import {
+    cherryPickCommit,
+    getCommitDifference,
+    getCommitMessage,
+    getHeadCommitHash,
+    getLastNCommits,
+    makeEmptyCommit,
+} from './git-commits';
 import {
     createFileAndCommitEverythingToNewBranchTest,
     createTestBranch,
@@ -76,42 +84,137 @@ describe(pushBranch.name, () => {
 
 describe(`${rebaseCurrentBranchFromRef.name} and ${pushBranch.name}`, () => {
     const persistentTestBranchName = 'test-branch-persistent';
+    const triggerCommitMessage = 'keep this commit!';
 
     gitIt(
-        'should push to a persistent branch',
+        'should push to a persistent branch and keep matching commit',
         async () => {
             const beforeBranch = await getCurrentBranchName();
+            const beforeCommitHash = await getHeadCommitHash();
 
-            await definitelyCheckoutBranch({
-                branchName: persistentTestBranchName,
-                allowFromRemote: true,
-                remoteName: 'origin',
-            });
-            if (
-                await doesBranchExist(persistentTestBranchName, {
-                    remote: true,
+            try {
+                await definitelyCheckoutBranch({
+                    branchName: persistentTestBranchName,
+                    allowFromRemote: true,
                     remoteName: 'origin',
-                })
-            ) {
-                await hardResetCurrentBranchTo(persistentTestBranchName, {
+                });
+
+                const notOnBeforeBranchCommits = await getCommitDifference({
+                    notOnThisBranch: beforeBranch,
+                    onThisBranch: persistentTestBranchName,
+                });
+                const newCommitsWithMessages = await Promise.all(
+                    notOnBeforeBranchCommits.map(async (commitHash) => {
+                        return {
+                            message: await getCommitMessage(commitHash),
+                            hash: commitHash,
+                        };
+                    }),
+                );
+
+                const originalTriggerCommitHash: undefined | string = newCommitsWithMessages.find(
+                    (commitWithMessage) => {
+                        return commitWithMessage.message.startsWith(triggerCommitMessage);
+                    },
+                )?.hash;
+
+                let cherryPickedOriginalTriggerCommitHash = '';
+
+                if (
+                    await doesBranchExist(persistentTestBranchName, {
+                        remote: true,
+                        remoteName: 'origin',
+                    })
+                ) {
+                    await hardResetCurrentBranchTo(beforeBranch, {local: true});
+
+                    if (originalTriggerCommitHash) {
+                        cherryPickedOriginalTriggerCommitHash = await cherryPickCommit(
+                            originalTriggerCommitHash,
+                        );
+                        expect(await getCommitMessage(await getHeadCommitHash())).toBe(
+                            await getCommitMessage(originalTriggerCommitHash),
+                        );
+                    }
+                }
+
+                await expectOnBranch(persistentTestBranchName);
+
+                const newTriggerCommitHash = await makeEmptyCommit(
+                    `${triggerCommitMessage} ${randomString(16)}`,
+                );
+
+                // make 5 empty commits
+                const newCommits: string[] = await Array(5)
+                    .fill(0)
+                    // reduce must be used here so the commits are made in order and git doesn't
+                    // get broken
+                    .reduce(async (accum: Promise<string[]>): Promise<string[]> => {
+                        const previousCommits = await accum;
+                        const commitHash = await makeEmptyCommit(
+                            `timestamp: ${new Date().toISOString()}`,
+                        );
+                        return previousCommits.concat(commitHash);
+                    }, [] as string[]);
+
+                const commitCheckLength = originalTriggerCommitHash
+                    ? newCommits.length + 3
+                    : newCommits.length + 2;
+
+                const latestCommits = await getLastNCommits(commitCheckLength);
+
+                const expectedCommits: string[] = [
+                    ...newCommits.reverse(),
+                    newTriggerCommitHash,
+                    ...(originalTriggerCommitHash ? [cherryPickedOriginalTriggerCommitHash] : []),
+                    beforeCommitHash,
+                ];
+
+                expect(expectedCommits.length).toBe(commitCheckLength);
+
+                expect(latestCommits).toEqual(expectedCommits);
+
+                await pushBranch({
+                    branchName: persistentTestBranchName,
+                    remoteName: 'origin',
+                    force: true,
+                });
+                await expectBranchExists(persistentTestBranchName, {
                     remote: true,
                     remoteName: 'origin',
                 });
+
+                const afterPushCommits = await getLastNCommits(
+                    commitCheckLength,
+                    `origin/${persistentTestBranchName}`,
+                );
+
+                expect(afterPushCommits).toEqual(expectedCommits);
+
+                await hardResetCurrentBranchTo(beforeBranch, {local: true});
+
+                const cherryPickedNewTriggerCommitHash = await cherryPickCommit(
+                    newTriggerCommitHash,
+                );
+                await pushBranch({
+                    branchName: persistentTestBranchName,
+                    remoteName: 'origin',
+                    force: true,
+                });
+                expect(await getLastNCommits(2, `origin/${persistentTestBranchName}`)).toEqual([
+                    cherryPickedNewTriggerCommitHash,
+                    beforeCommitHash,
+                ]);
+            } catch (error) {
+                throw error;
+            } finally {
+                await checkoutBranch(beforeBranch);
+                await expectOnBranch(beforeBranch);
+                expect(await getHeadCommitHash()).toBe(beforeCommitHash);
             }
-            await expectOnBranch(persistentTestBranchName);
-
-            await makeEmptyCommit(`timestamp: ${new Date().toISOString()}`);
-
-            await pushBranch({branchName: persistentTestBranchName, remoteName: 'origin'});
-            await expectBranchExists(persistentTestBranchName, {
-                remote: true,
-                remoteName: 'origin',
-            });
-
-            await checkoutBranch(beforeBranch);
-            await expectOnBranch(beforeBranch);
         },
-        30000,
+        // super long time is for GitHub Actions
+        60000,
     );
 });
 

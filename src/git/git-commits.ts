@@ -79,3 +79,20 @@ export async function getCommitDifference(inputs: GetCommitDifferenceInputs): Pr
         .map((line) => line.trim())
         .filter(isTruthy);
 }
+
+export async function getCommitMessage(refName: string): Promise<string> {
+    const getCommitMessageCommand = `git log -1 --pretty=format:"%B" ${safeInterpolate(refName)}`;
+    const getCommitMessageCommandOutput = await runShellCommand(getCommitMessageCommand, {
+        rejectOnError: true,
+    });
+
+    return getCommitMessageCommandOutput.stdout.trim();
+}
+
+/** Returns the new head hash. */
+export async function cherryPickCommit(commitHash: string): Promise<string> {
+    const cherryPickCommand = `git cherry-pick --allow-empty ${safeInterpolate(commitHash)}`;
+    await runShellCommand(cherryPickCommand, {rejectOnError: true});
+
+    return getHeadCommitHash();
+}

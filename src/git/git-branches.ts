@@ -106,12 +106,14 @@ export async function getCurrentBranchName(): Promise<string> {
 export type PushBranchOptions = {
     branchName: string;
     remoteName: string;
+    force?: boolean;
 };
 
-export async function pushBranch({branchName, remoteName}: PushBranchOptions) {
-    const pushBranchCommand = `git push -u ${safeInterpolate(remoteName)} ${safeInterpolate(
-        branchName,
-    )}:${safeInterpolate(branchName)}`;
+export async function pushBranch({branchName, remoteName, force}: PushBranchOptions) {
+    const forceFlag = force ? ' -f' : '';
+    const pushBranchCommand = `git push${forceFlag} -u ${safeInterpolate(
+        remoteName,
+    )} ${safeInterpolate(branchName)}:${safeInterpolate(branchName)}`;
     const pushBranchCommandOutput = await runShellCommand(pushBranchCommand);
 
     if (pushBranchCommandOutput.exitCode !== 0) {

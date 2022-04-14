@@ -1,6 +1,6 @@
 import {isTruthy} from 'augment-vir/dist';
 import {copy, ensureDir} from 'fs-extra';
-import {stat} from 'fs/promises';
+import {readFile, stat, writeFile} from 'fs/promises';
 import {basename, dirname, join, relative} from 'path';
 
 export async function copyFilesToDir({
@@ -45,4 +45,21 @@ export async function copyFilesToDir({
             }),
         )
     ).filter(isTruthy);
+}
+
+export type RemoveMatchFromFileInputs = {
+    fileName: string;
+    match: string | RegExp;
+};
+
+/** Returns true if modifications were made to the file */
+export async function removeMatchFromFile(inputs: RemoveMatchFromFileInputs): Promise<boolean> {
+    const currentFileContents = (await readFile(inputs.fileName)).toString();
+    const replacedFileContents = currentFileContents.replace(inputs.match, '');
+    if (currentFileContents.length !== replacedFileContents.length) {
+        await writeFile(inputs.fileName, replacedFileContents);
+        return true;
+    } else {
+        return false;
+    }
 }

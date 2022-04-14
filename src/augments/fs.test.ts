@@ -1,11 +1,11 @@
 import {assertNotNullish} from 'augment-vir/dist/jest-only';
 import {existsSync} from 'fs';
 import {remove} from 'fs-extra';
-import {unlink} from 'fs/promises';
+import {readFile, unlink, writeFile} from 'fs/promises';
 import {relative} from 'path';
 import {directoryForFleekIterativeDeployFiles} from '../file-paths';
 import {createNewTestDir, createNewTestFile} from '../test/create-test-file';
-import {copyFilesToDir} from './fs';
+import {copyFilesToDir, removeMatchFromFile} from './fs';
 
 describe(copyFilesToDir.name, () => {
     it('should copy files over', async () => {
@@ -58,5 +58,30 @@ describe(copyFilesToDir.name, () => {
         await remove(copyToDir);
         expect(existsSync(copyFromDir)).not.toBe(true);
         expect(existsSync(copyToDir)).not.toBe(true);
+    });
+});
+
+describe(removeMatchFromFile.name, () => {
+    it('should delete a line', async () => {
+        function createMessage(insertion: string) {
+            return `stuff here\nand here${insertion}\nthe end`;
+        }
+        const testFile = await createNewTestFile();
+        const matchingLine = '\nand more here';
+        const startMessage = createMessage(matchingLine);
+        await writeFile(testFile, startMessage);
+
+        const afterFirstWrite = (await readFile(testFile)).toString();
+        expect(afterFirstWrite).toBe(startMessage);
+
+        const didRemove = await removeMatchFromFile({fileName: testFile, match: matchingLine});
+        expect(didRemove).toBe(true);
+
+        const afterRemoval = (await readFile(testFile)).toString();
+        expect(afterRemoval).not.toBe(startMessage);
+        expect(afterRemoval).toBe(createMessage(''));
+
+        await remove(testFile);
+        expect(existsSync(testFile)).toBe(false);
     });
 });
