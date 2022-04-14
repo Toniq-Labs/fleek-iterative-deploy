@@ -22,6 +22,10 @@ jobs:
               with:
                   node-version: ${{ matrix.node-version }}
             - name: run test
+              env:
+                  FLEEK_API_KEY: ${{ secrets.FLEEK_API_KEY }}
+                  FLEEK_SITE_ID: ${{ secrets.FLEEK_SITE_ID }}
+                  FLEEK_TEAM_ID: ${{ secrets.FLEEK_TEAM_ID }}
               run: |
                   npm ci
                   npm run test:full
