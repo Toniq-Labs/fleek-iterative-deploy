@@ -22,7 +22,7 @@ export async function createFileAndCommitEverythingToNewBranchTest() {
     const newBranchName = await createTestBranch();
     const beforeBranch = await getCurrentBranchName();
 
-    await definitelyCheckoutBranch(newBranchName);
+    await definitelyCheckoutBranch({branchName: newBranchName, allowFromRemote: false});
     await expectOnBranch(newBranchName);
     const testFilePath = await createNewTestFile();
     await expectChangesToInclude(testFilePath);

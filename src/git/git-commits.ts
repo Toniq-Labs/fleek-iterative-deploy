@@ -1,5 +1,6 @@
 import {runShellCommand} from 'augment-vir/dist/node-only';
 import {safeInterpolate} from '../augments/shell';
+import {getChanges} from './git-changes';
 
 export async function getHeadCommitHash(): Promise<string> {
     const getCommitCommand = `git rev-parse HEAD`;
@@ -24,6 +25,18 @@ export async function commitEverythingToCurrentBranch(commitMessage: string): Pr
 
     const commitCommand = `git commit -m ${safeInterpolate(commitMessage)}`;
     await runShellCommand(commitCommand, {rejectOnError: true});
+
+    return await getHeadCommitHash();
+}
+
+export async function makeEmptyCommit(commitMessage: string): Promise<string> {
+    const changes = await getChanges();
+    if (changes.length) {
+        throw new Error(`Cannot create empty commit, there are current changes.`);
+    }
+
+    const commitEmptyCommand = `git commit --allow-empty -m ${safeInterpolate(commitMessage)}`;
+    await runShellCommand(commitEmptyCommand, {rejectOnError: true});
 
     return await getHeadCommitHash();
 }

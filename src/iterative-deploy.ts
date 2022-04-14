@@ -36,8 +36,16 @@ export async function deployIteratively({
 
     const triggerBranchName = await getCurrentBranchName();
 
-    await definitelyCheckoutBranch(buildOutputBranchName);
-    await hardResetCurrentBranchTo(triggerBranchName);
+    await definitelyCheckoutBranch({
+        branchName: buildOutputBranchName,
+        allowFromRemote: true,
+        remoteName: gitRemoteName,
+    });
+    throw new Error(`Cant do a hard reset here`);
+    await hardResetCurrentBranchTo(triggerBranchName, {
+        remote: true,
+        remoteName: gitRemoteName,
+    });
     const buildCommandOutput = await runShellCommand(buildCommand, {
         stderrCallback: console.error,
         stdoutCallback: console.log,

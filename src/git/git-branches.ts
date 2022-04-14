@@ -69,12 +69,31 @@ export async function doesBranchExist(
     return true;
 }
 
+export type DefinitelyCheckoutBranchInputs = {
+    branchName: string;
+} & (
+    | {
+          allowFromRemote: true;
+          remoteName: string;
+      }
+    | {
+          allowFromRemote: false;
+          remoteName?: string | undefined;
+      }
+);
+
 /** If the given branch name does not exist, create it. Then checkout the given branch name. */
-export async function definitelyCheckoutBranch(branchName: string): Promise<void> {
-    if (!doesBranchExist(branchName)) {
-        await createBranch(branchName);
+export async function definitelyCheckoutBranch(
+    inputs: DefinitelyCheckoutBranchInputs,
+): Promise<void> {
+    const onRemote: boolean = inputs.allowFromRemote
+        ? await fetchRemoteRef({refName: inputs.branchName, remoteName: inputs.remoteName})
+        : false;
+
+    if (!(await doesBranchExist(inputs.branchName)) && !onRemote) {
+        await createBranch(inputs.branchName);
     }
-    await checkoutBranch(branchName);
+    await checkoutBranch(inputs.branchName);
 }
 
 export async function getCurrentBranchName(): Promise<string> {
@@ -100,8 +119,21 @@ export async function pushBranch({branchName, remoteName}: PushBranchOptions) {
     }
 }
 
-export async function hardResetCurrentBranchTo(resetToThisBranchName: string): Promise<void> {
-    const resetBranchCommand = `git reset --hard ${safeInterpolate(resetToThisBranchName)}`;
+export async function hardResetCurrentBranchTo(
+    resetToThisRef: string,
+    options: RemoteOrLocalOptions,
+): Promise<void> {
+    if (options.remote) {
+        if (!(await fetchRemoteRef({refName: resetToThisRef, remoteName: options.remoteName}))) {
+            throw new Error(
+                `Cannot reset, failed to find ref "${resetToThisRef}" on remote "${options.remoteName}".`,
+            );
+        }
+    }
+
+    const fullRefName = options.remote ? `${options.remoteName}/${resetToThisRef}` : resetToThisRef;
+
+    const resetBranchCommand = `git reset --hard ${safeInterpolate(fullRefName)}`;
     await runShellCommand(resetBranchCommand, {rejectOnError: true});
 }
 
@@ -143,17 +175,28 @@ export type FetchRemoteRefInputs = {
     refName: string;
 };
 
-async function fetchRemoteRef(inputs: FetchRemoteRefInputs): Promise<void> {
+export async function fetchRemoteRef(inputs: FetchRemoteRefInputs): Promise<boolean> {
     const fetchCommand = `git fetch ${safeInterpolate(inputs.remoteName)} ${safeInterpolate(
         inputs.refName,
     )}`;
-    const commandResult = await runShellCommand(fetchCommand, {rejectOnError: true});
+    const commandResult = await runShellCommand(fetchCommand);
 
+    if (commandResult.stderr.includes("couldn't find remote ref")) {
+        return false;
+    }
     if (commandResult.exitCode !== 0) {
         throw new Error(
-            `Failed to fetch ref "${inputs.refName}" from remote "${inputs.remoteName}"`,
+            `Failed to fetch ref "${inputs.refName}" from remote "${inputs.remoteName}": ${commandResult.stderr}`,
         );
     }
+
+    return true;
+}
+
+/** Warning: this could take a long time if you have tons of branches. */
+export async function updateAllFromRemote(): Promise<void> {
+    const updateCommand = `git remote update --prune`;
+    await runShellCommand(updateCommand, {rejectOnError: true});
 }
 
 async function deleteRemoteBranch(branchName: string, remoteName: string): Promise<void> {
@@ -191,14 +234,17 @@ export async function deleteBranch(
 
 export async function listBranchNames(options: RemoteOrLocalOptions): Promise<string[]> {
     assertValidRemoteOrLocalOptions(options);
-    const {remote, local, remoteName} = options;
 
-    const pattern = remote
-        ? local
+    if (options.remote) {
+        await updateAllFromRemote();
+    }
+
+    const pattern = options.remote
+        ? options.local
             ? // if remote and local branches should be included, don't use a pattern
               ''
             : // if only remote branches are desired, use the remotes pattern
-              `refs/remotes/${remoteName}`
+              `refs/remotes/${options.remoteName}`
         : // if remote branches are excluded, only list local branches.
           'refs/heads';
 

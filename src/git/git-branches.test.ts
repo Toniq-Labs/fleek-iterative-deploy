@@ -3,12 +3,13 @@ import {
     createBranch,
     definitelyCheckoutBranch,
     deleteBranch,
+    doesBranchExist,
     getCurrentBranchName,
     hardResetCurrentBranchTo,
     listBranchNames,
     pushBranch,
 } from './git-branches';
-import {getHeadCommitHash} from './git-commits';
+import {getHeadCommitHash, makeEmptyCommit} from './git-commits';
 import {
     createFileAndCommitEverythingToNewBranchTest,
     createTestBranch,
@@ -52,16 +53,63 @@ describe(`${createBranch.name} and ${deleteBranch.name}`, () => {
 });
 
 describe(pushBranch.name, () => {
-    gitIt('should be able to push a branch', async () => {
-        const newBranchName = await createTestBranch();
-        await expectBranchNoExist(newBranchName, {remote: true, remoteName: 'origin'});
+    gitIt(
+        'should be able to push a branch',
+        async () => {
+            const newBranchName = await createTestBranch();
+            await expectBranchNoExist(newBranchName, {remote: true, remoteName: 'origin'});
 
-        await pushBranch({branchName: newBranchName, remoteName: 'origin'});
-        await expectBranchExists(newBranchName, {remote: true, remoteName: 'origin'});
+            await pushBranch({branchName: newBranchName, remoteName: 'origin'});
+            await expectBranchExists(newBranchName, {remote: true, remoteName: 'origin'});
 
-        await deleteBranch(newBranchName, {local: true, remote: true, remoteName: 'origin'});
-        await expectBranchNoExist(newBranchName, {local: true, remote: true, remoteName: 'origin'});
-    });
+            await deleteBranch(newBranchName, {local: true, remote: true, remoteName: 'origin'});
+            await expectBranchNoExist(newBranchName, {
+                local: true,
+                remote: true,
+                remoteName: 'origin',
+            });
+        },
+        20000,
+    );
+
+    const persistentTestBranchName = 'test-branch-persistent';
+
+    gitIt(
+        'should push to a persistent branch',
+        async () => {
+            const beforeBranch = await getCurrentBranchName();
+
+            await definitelyCheckoutBranch({
+                branchName: persistentTestBranchName,
+                allowFromRemote: true,
+                remoteName: 'origin',
+            });
+            if (
+                await doesBranchExist(persistentTestBranchName, {
+                    remote: true,
+                    remoteName: 'origin',
+                })
+            ) {
+                await hardResetCurrentBranchTo(persistentTestBranchName, {
+                    remote: true,
+                    remoteName: 'origin',
+                });
+            }
+            await expectOnBranch(persistentTestBranchName);
+
+            await makeEmptyCommit(`timestamp: ${new Date().toISOString()}`);
+
+            await pushBranch({branchName: persistentTestBranchName, remoteName: 'origin'});
+            await expectBranchExists(persistentTestBranchName, {
+                remote: true,
+                remoteName: 'origin',
+            });
+
+            await checkoutBranch(beforeBranch);
+            await expectOnBranch(beforeBranch);
+        },
+        30000,
+    );
 });
 
 describe(checkoutBranch.name, () => {
@@ -81,7 +129,7 @@ describe(definitelyCheckoutBranch.name, () => {
         const newBranchName = await createTestBranch();
         const beforeBranch = await getCurrentBranchName();
 
-        await definitelyCheckoutBranch(newBranchName);
+        await definitelyCheckoutBranch({branchName: newBranchName, allowFromRemote: false});
         await expectOnBranch(newBranchName);
 
         await deleteBranchAndGoBackToPreviousBranch(beforeBranch);
@@ -95,7 +143,7 @@ describe(hardResetCurrentBranchTo.name, () => {
         const beforeResetCommit = await getHeadCommitHash();
         // double check we're not on the main branch
         expect(beforeBranch).not.toBe(newBranch);
-        await hardResetCurrentBranchTo(beforeBranch);
+        await hardResetCurrentBranchTo(beforeBranch, {local: true});
 
         const afterResetCommit = await getHeadCommitHash();
         expect(afterResetCommit).not.toBe(beforeResetCommit);

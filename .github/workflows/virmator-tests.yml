@@ -2,8 +2,8 @@ name: tests
 
 on:
     push:
-        branches:
-            - '**'
+        branches-ignore:
+            - 'test-branch-*'
 
 jobs:
     build:
