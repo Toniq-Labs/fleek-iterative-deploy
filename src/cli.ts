@@ -21,6 +21,7 @@ export const defaultInputs: Readonly<DeployIterativelyInputs> = {
     buildCommand: 'npm run build',
     buildOutputBranchName: 'FLEEK_ITERATIVE_DEPLOY',
     fleekDeployDir: 'build',
+    triggerBranch: 'main',
     filesPerUpload: 50,
     gitRemoteName: 'origin',
 } as const;
@@ -44,9 +45,10 @@ async function main() {
 
     const buildCommand: string = args[0] ?? defaultInputs.buildCommand;
     const buildOutputBranchName: string = args[1] ?? defaultInputs.buildOutputBranchName;
-    const fleekDeployDir: string = args[2] ?? defaultInputs.fleekDeployDir;
-    const rawFilesPerUpload: number = Number(args[3]);
-    const gitRemoteName: string = args[4] ?? defaultInputs.gitRemoteName;
+    const triggerBranch: string = args[2] ?? defaultInputs.triggerBranch;
+    const fleekDeployDir: string = args[3] ?? defaultInputs.fleekDeployDir;
+    const rawFilesPerUpload: number = Number(args[4]);
+    const gitRemoteName: string = args[5] ?? defaultInputs.gitRemoteName;
     const filesPerUpload =
         isNaN(rawFilesPerUpload) || rawFilesPerUpload < 1
             ? defaultInputs.filesPerUpload
@@ -54,6 +56,7 @@ async function main() {
 
     const deployInputs: DeployIterativelyInputs = {
         buildCommand,
+        triggerBranch,
         buildOutputBranchName,
         fleekDeployDir,
         filesPerUpload,

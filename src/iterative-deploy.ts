@@ -6,10 +6,12 @@ import {copyFilesToDir, removeMatchFromFile} from './augments/fs';
 import {buildOutputForCopyingFrom, readmeForIterationBranchFile} from './file-paths';
 import {waitUntilAllDeploysAreFinished, waitUntilFleekDeployStarted} from './fleek';
 import {
+    checkoutBranch,
     definitelyCheckoutBranch,
     getCurrentBranchName,
     hardResetCurrentBranchTo,
     pushBranch,
+    updateAllFromRemote,
 } from './git/git-branches';
 import {getChangesInDirectory} from './git/git-changes';
 import {
@@ -23,6 +25,7 @@ import {setFleekIterativeDeployGitUser} from './git/set-fleek-iterative-deploy-g
 export type DeployIterativelyInputs = {
     buildOutputBranchName: string;
     buildCommand: string;
+    triggerBranch: string;
     fleekDeployDir: string;
     filesPerUpload: number;
     gitRemoteName: string;
@@ -33,6 +36,7 @@ const allBuildOutputCommitMessage = 'add all build output';
 export async function deployIteratively({
     buildOutputBranchName,
     buildCommand,
+    triggerBranch,
     fleekDeployDir,
     filesPerUpload,
     gitRemoteName,
@@ -41,7 +45,16 @@ export async function deployIteratively({
 
     await setFleekIterativeDeployGitUser();
 
+    await updateAllFromRemote();
+
+    await checkoutBranch(triggerBranch);
+
     const triggerBranchName = await getCurrentBranchName();
+    console.info({triggerBranchName});
+
+    if (!triggerBranch) {
+        throw new Error(`No trigger branch name.`);
+    }
 
     await definitelyCheckoutBranch({
         branchName: buildOutputBranchName,

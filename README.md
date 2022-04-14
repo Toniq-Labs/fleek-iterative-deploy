@@ -77,5 +77,5 @@ npx fleek-iterative-deploy
 ### Run with custom inputs
 
 ```bash
-npx fleek-iterative-deploy "<build-bash-command>" "<iterative-branch-name>" "<fleek-deploy-dir>" "<files-per-deploy-iteration>" "<remote-name>"
+npx fleek-iterative-deploy "<build-bash-command>" "<iterative-branch-name>" "<main-branch-name>" "<fleek-deploy-dir>" "<files-per-deploy-iteration>" "<remote-name>"
 ```
