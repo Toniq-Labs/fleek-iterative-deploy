@@ -9,7 +9,7 @@ import {
     definitelyCheckoutBranch,
     getCurrentBranchName,
     hardResetCurrentBranchTo,
-    pushCurrentBranch,
+    pushBranch,
 } from './git/git-branches';
 import {getChangesInDirectory} from './git/git-changes';
 import {commitEverythingToCurrentBranch} from './git/git-commits';
@@ -20,6 +20,7 @@ export type DeployIterativelyInputs = {
     buildCommand: string;
     fleekDeployDir: string;
     filesPerUpload: number;
+    gitRemoteName: string;
 };
 
 export async function deployIteratively({
@@ -27,6 +28,7 @@ export async function deployIteratively({
     buildCommand,
     fleekDeployDir,
     filesPerUpload,
+    gitRemoteName,
 }: DeployIterativelyInputs) {
     const totalStartTimeMs: number = Date.now();
 
@@ -77,7 +79,10 @@ export async function deployIteratively({
             `adding built files from index "${index}" with "${currentFiles.length}" total files.`,
         );
         console.info(`Pushing branch...`);
-        await pushCurrentBranch();
+        await pushBranch({
+            branchName: buildOutputBranchName,
+            remoteName: gitRemoteName,
+        });
         const deployStartTimeMs: number = Date.now();
         console.info(`Waiting for Fleek deploy to start...`);
         const deployDetected = await waitUntilFleekDeployStarted(deployStartTimeMs);

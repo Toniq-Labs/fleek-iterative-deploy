@@ -22,6 +22,7 @@ describe(__filename, () => {
         let buildOutputBranchName: string = '';
         let fleekDeployDir: string = '';
         let filesPerUpload: number = -1;
+        let gitRemoteName: string = '';
 
         lines.forEach((line) => {
             if (line.trim().startsWith('buildCommand')) {
@@ -36,6 +37,9 @@ describe(__filename, () => {
             if (line.trim().startsWith('filesPerUpload')) {
                 filesPerUpload = Number(extractEnding(line));
             }
+            if (line.trim().startsWith('gitRemoteName')) {
+                gitRemoteName = extractEnding(line);
+            }
         });
 
         return {
@@ -43,6 +47,7 @@ describe(__filename, () => {
             buildOutputBranchName,
             fleekDeployDir,
             filesPerUpload,
+            gitRemoteName,
         };
     }
 

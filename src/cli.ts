@@ -13,6 +13,7 @@ export const defaultInputs: Readonly<DeployIterativelyInputs> = {
     buildOutputBranchName: 'FLEEK_ITERATIVE_DEPLOY',
     fleekDeployDir: 'build',
     filesPerUpload: 50,
+    gitRemoteName: 'origin',
 } as const;
 
 async function main() {
@@ -28,6 +29,7 @@ async function main() {
     const buildOutputBranchName: string = args[1] ?? defaultInputs.buildOutputBranchName;
     const fleekDeployDir: string = args[2] ?? defaultInputs.fleekDeployDir;
     const rawFilesPerUpload: number = Number(args[3]);
+    const gitRemoteName: string = args[4] ?? defaultInputs.gitRemoteName;
     const filesPerUpload =
         isNaN(rawFilesPerUpload) || rawFilesPerUpload < 1
             ? defaultInputs.filesPerUpload
@@ -38,6 +40,7 @@ async function main() {
         buildOutputBranchName,
         fleekDeployDir,
         filesPerUpload,
+        gitRemoteName,
     };
 
     console.info({deployInputs});

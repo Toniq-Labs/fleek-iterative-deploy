@@ -6,12 +6,14 @@ import {
     getCurrentBranchName,
     hardResetCurrentBranchTo,
     listBranchNames,
+    pushBranch,
 } from './git-branches';
 import {getHeadCommitHash} from './git-commits';
 import {
     createFileAndCommitEverythingToNewBranchTest,
     createTestBranch,
     deleteBranchAndGoBackToPreviousBranch,
+    expectBranchExists,
     expectBranchNoExist,
     expectOnBranch,
     gitIt,
@@ -19,16 +21,22 @@ import {
 
 describe(listBranchNames.name, () => {
     gitIt('should list at least the main branch', async () => {
-        const branchNames = await listBranchNames();
+        const branchNames = await listBranchNames({local: true});
         expect(branchNames.length).toBeGreaterThan(0);
         expect(branchNames.includes('main')).toBe(true);
+    });
+
+    gitIt('should be able to list remote branches', async () => {
+        const remoteBranchNames = await listBranchNames({remote: true, remoteName: 'origin'});
+        expect(remoteBranchNames.length).toBeGreaterThan(0);
+        expect(remoteBranchNames.includes('origin/main')).toBe(true);
     });
 });
 
 describe(getCurrentBranchName.name, () => {
     gitIt('should be included in the list of branch names', async () => {
         const currentBranch = await getCurrentBranchName();
-        const allBranches = await listBranchNames();
+        const allBranches = await listBranchNames({local: true});
 
         expect(allBranches.includes(currentBranch)).toBe(true);
     });
@@ -40,6 +48,19 @@ describe(`${createBranch.name} and ${deleteBranch.name}`, () => {
 
         await deleteBranch(newBranchName);
         await expectBranchNoExist(newBranchName);
+    });
+});
+
+describe(pushBranch.name, () => {
+    gitIt('should be able to push a branch', async () => {
+        const newBranchName = await createTestBranch();
+        await expectBranchNoExist(newBranchName, {remote: true, remoteName: 'origin'});
+
+        await pushBranch({branchName: newBranchName, remoteName: 'origin'});
+        await expectBranchExists(newBranchName, {remote: true, remoteName: 'origin'});
+
+        await deleteBranch(newBranchName, {local: true, remote: true, remoteName: 'origin'});
+        await expectBranchNoExist(newBranchName, {local: true, remote: true, remoteName: 'origin'});
     });
 });
 

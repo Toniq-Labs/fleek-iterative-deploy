@@ -9,6 +9,7 @@ import {
     DeleteBranchOptions,
     doesBranchExist,
     getCurrentBranchName,
+    RemoteOrLocalOptions,
 } from './git-branches';
 import {getChanges} from './git-changes';
 import {commitEverythingToCurrentBranch} from './git-commits';
@@ -37,12 +38,18 @@ export async function createFileAndCommitEverythingToNewBranchTest() {
     };
 }
 
-export async function expectBranchExists(branchName: string): Promise<void> {
-    expect(await doesBranchExist(branchName)).toBe(true);
+export async function expectBranchExists(
+    branchName: string,
+    options?: RemoteOrLocalOptions,
+): Promise<void> {
+    expect(await doesBranchExist(branchName, options)).toBe(true);
 }
 
-export async function expectBranchNoExist(branchName: string): Promise<void> {
-    expect(await doesBranchExist(branchName)).toBe(false);
+export async function expectBranchNoExist(
+    branchName: string,
+    options?: RemoteOrLocalOptions,
+): Promise<void> {
+    expect(await doesBranchExist(branchName, options)).toBe(false);
 }
 
 export async function expectOnBranch(branchName: string): Promise<void> {
@@ -61,7 +68,8 @@ export async function expectNoChanges(): Promise<void> {
 }
 
 export async function createTestBranch(): Promise<string> {
-    const newBranchName = `test-branch-${randomString(8)}`;
+    await expectNoChanges();
+    const newBranchName = `test-branch-${randomString(16)}`;
     await expectBranchNoExist(newBranchName);
 
     await createBranch(newBranchName);

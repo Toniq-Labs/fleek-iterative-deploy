@@ -10,6 +10,6 @@ describe(commitEverythingToCurrentBranch.name, () => {
         const {beforeBranch} = await createFileAndCommitEverythingToNewBranchTest();
 
         // deleting the branch must be forced to prevent branch "not full merged" errors.
-        await deleteBranchAndGoBackToPreviousBranch(beforeBranch, {force: true});
+        await deleteBranchAndGoBackToPreviousBranch(beforeBranch, {force: true, local: true});
     });
 });

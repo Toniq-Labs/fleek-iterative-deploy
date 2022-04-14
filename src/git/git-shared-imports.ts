@@ -1,3 +1,3 @@
 export function getRefBaseName(input: string): string {
-    return input.trim().replace('refs/heads/', '');
+    return input.trim().replace('refs/heads/', '').replace('refs/remotes/', '');
 }
