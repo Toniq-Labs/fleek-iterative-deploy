@@ -1,7 +1,7 @@
 import {runShellCommand} from 'augment-vir/dist/node-only';
 import {copy, ensureDir, remove} from 'fs-extra';
 import {readdir} from 'fs/promises';
-import {relative} from 'path';
+import {join, relative} from 'path';
 import {divideArray} from './augments/array';
 import {copyFilesToDir, removeMatchFromFile} from './augments/fs';
 import {buildOutputForCopyingFrom, readmeForIterationBranchFile} from './file-paths';
@@ -21,6 +21,7 @@ import {
     getCommitDifference,
     getCommitMessage,
     getHeadCommitHash,
+    stageEverything,
 } from './git/git-commits';
 import {setFleekIterativeDeployGitUser} from './git/set-fleek-iterative-deploy-git-user';
 
@@ -44,6 +45,8 @@ export async function deployIteratively({
     gitRemoteName,
 }: DeployIterativelyInputs) {
     const totalStartTimeMs: number = Date.now();
+
+    const fullFleekDeployDirPath = join(process.cwd(), fleekDeployDir);
 
     await setFleekIterativeDeployGitUser();
 
@@ -119,9 +122,9 @@ with commit message:
         stdoutCallback: (buffer) => console.info(buffer.toString()),
     });
 
-    const fileCountInFleekDeployDir = (await readdir(fleekDeployDir)).length;
+    const fileCountInFleekDeployDir = (await readdir(fullFleekDeployDirPath)).length;
     console.info(
-        `Build done. "${fileCountInFleekDeployDir}" files now in fleek deploy dir "${fleekDeployDir}"`,
+        `Build done. "${fileCountInFleekDeployDir}" files now in fleek deploy dir "${fullFleekDeployDirPath}"`,
     );
 
     if (buildCommandOutput.exitCode !== 0) {
@@ -136,21 +139,28 @@ with commit message:
     // clear out the directory we'll be copying from
     await remove(buildOutputForCopyingFrom);
     await ensureDir(buildOutputForCopyingFrom);
-    console.info(`Copying "${fleekDeployDir}" to "${buildOutputForCopyingFrom}"`);
+    console.info(`Copying "${fullFleekDeployDirPath}" to "${buildOutputForCopyingFrom}"`);
     // put all the build output into the directory we'll copy from
-    await copy(fleekDeployDir, buildOutputForCopyingFrom);
-    console.info(`Clearing "${fleekDeployDir}"`);
-    await remove(fleekDeployDir);
-    await ensureDir(fleekDeployDir);
+    await copy(fullFleekDeployDirPath, buildOutputForCopyingFrom);
+
+    const fileCountInBuildOutputForCopyingFrom = (await readdir(buildOutputForCopyingFrom)).length;
+    console.info(
+        `Copying done: "${fileCountInBuildOutputForCopyingFrom}" files are in "${buildOutputForCopyingFrom}" now.`,
+    );
+
+    console.info(`Clearing "${fullFleekDeployDirPath}"`);
+    await remove(fullFleekDeployDirPath);
+    await ensureDir(fullFleekDeployDirPath);
 
     const relativeCopyFromDir = relative(process.cwd(), buildOutputForCopyingFrom);
 
     console.info(`Getting changes in "${relativeCopyFromDir}"`);
+    await stageEverything();
     const allChangesForDebugging = await getChanges();
     console.log({allChangesForDebugging});
     const changedFiles: Readonly<string[]> = await getChangesInDirectory(relativeCopyFromDir);
     console.info(
-        `"${changedFiles.length}" changed files detected:\n  ${changedFiles.join('\n  ')}`,
+        `"${changedFiles.length}" changed files detected:\n    ${changedFiles.join('\n    ')}`,
     );
 
     console.info(`un-git-ignoring "${fleekDeployDir}"`);
@@ -180,10 +190,10 @@ with commit message:
                 '\n  ',
             )}`,
         );
-        await remove(fleekDeployDir);
-        await ensureDir(fleekDeployDir);
+        await remove(fullFleekDeployDirPath);
+        await ensureDir(fullFleekDeployDirPath);
         await copyFilesToDir({
-            copyToDir: fleekDeployDir,
+            copyToDir: fullFleekDeployDirPath,
             files: currentFiles,
             keepStructureFromDir: buildOutputForCopyingFrom,
         });
