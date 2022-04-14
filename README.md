@@ -1,5 +1,9 @@
 # fleek-iterative-deploy
 
+Package that will iteratively deploy a site to Fleek by gradually committing all changed files to the deploy directory.
+
+Requires Node.js 16+.
+
 ## Install
 
 ```bash
