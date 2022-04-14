@@ -1,5 +1,10 @@
 import {checkoutBranch, getCurrentBranchName} from './git-branches';
-import {commitEverythingToCurrentBranch, getHeadCommitHash, makeEmptyCommit} from './git-commits';
+import {
+    commitEverythingToCurrentBranch,
+    getHeadCommitHash,
+    getLastNCommits,
+    makeEmptyCommit,
+} from './git-commits';
 import {
     createFileAndCommitEverythingToNewBranchTest,
     createTestBranch,
@@ -20,7 +25,7 @@ describe(commitEverythingToCurrentBranch.name, () => {
 });
 
 describe(makeEmptyCommit.name, () => {
-    it('should make an empty commit', async () => {
+    gitIt('should make an empty commit', async () => {
         const newBranch = await createTestBranch();
         await expectNotOnBranch(newBranch);
         await expectBranchExists(newBranch);
@@ -38,5 +43,14 @@ describe(makeEmptyCommit.name, () => {
         expect(expect(newHash)).not.toBe(afterCommitHash);
 
         await deleteBranchAndGoBackToPreviousBranch(beforeBranch, {force: true, local: true});
+    });
+});
+
+describe(getLastNCommits.name, () => {
+    gitIt('should get commits from current branch', async () => {
+        const commitCount = 5;
+        const commits = await getLastNCommits(commitCount);
+        expect(commits.length).toBe(commitCount);
+        expect(commits[0]).toBe(await getHeadCommitHash());
     });
 });

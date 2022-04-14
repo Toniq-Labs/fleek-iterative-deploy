@@ -8,6 +8,7 @@ import {
     hardResetCurrentBranchTo,
     listBranchNames,
     pushBranch,
+    rebaseCurrentBranchFromRef,
 } from './git-branches';
 import {getHeadCommitHash, makeEmptyCommit} from './git-commits';
 import {
@@ -71,7 +72,9 @@ describe(pushBranch.name, () => {
         },
         20000,
     );
+});
 
+describe(`${rebaseCurrentBranchFromRef.name} and ${pushBranch.name}`, () => {
     const persistentTestBranchName = 'test-branch-persistent';
 
     gitIt(

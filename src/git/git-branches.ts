@@ -232,6 +232,11 @@ export async function deleteBranch(
     }
 }
 
+export async function rebaseCurrentBranchFromRef(refName: string): Promise<void> {
+    const rebaseCommand = `git rebase ${safeInterpolate(refName)}`;
+    await runShellCommand(rebaseCommand, {rejectOnError: true});
+}
+
 export async function listBranchNames(options: RemoteOrLocalOptions): Promise<string[]> {
     assertValidRemoteOrLocalOptions(options);
 
@@ -257,8 +262,8 @@ export async function listBranchNames(options: RemoteOrLocalOptions): Promise<st
         listBranchesCommandOutput.stdout
             .trim()
             .split('\n')
+            .map(getRefBaseName)
             // remove potentially empty lines
             .filter(isTruthy)
-            .map(getRefBaseName)
     );
 }

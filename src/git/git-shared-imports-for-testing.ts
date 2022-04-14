@@ -12,15 +12,20 @@ import {
     RemoteOrLocalOptions,
 } from './git-branches';
 import {getChanges} from './git-changes';
-import {commitEverythingToCurrentBranch} from './git-commits';
+import {
+    commitEverythingToCurrentBranch,
+    getCommitDifference,
+    getHeadCommitHash,
+    getLastNCommits,
+} from './git-commits';
 import {setFleekIterativeDeployGitUser} from './set-fleek-iterative-deploy-git-user';
 
 export async function createFileAndCommitEverythingToNewBranchTest() {
     // make sure we're clean before running the test
     await expectNoChanges();
 
-    const newBranchName = await createTestBranch();
     const beforeBranch = await getCurrentBranchName();
+    const newBranchName = await createTestBranch();
 
     await definitelyCheckoutBranch({branchName: newBranchName, allowFromRemote: false});
     await expectOnBranch(newBranchName);
@@ -28,7 +33,13 @@ export async function createFileAndCommitEverythingToNewBranchTest() {
     await expectChangesToInclude(testFilePath);
 
     const newCommitMessage = `test commit ${randomString(16)}`;
-    await commitEverythingToCurrentBranch(newCommitMessage);
+    const newCommitHash = await commitEverythingToCurrentBranch(newCommitMessage);
+
+    expect(await getHeadCommitHash()).toBe(newCommitHash);
+    expect(await getLastNCommits(1)).toEqual([newCommitHash]);
+    expect(
+        await getCommitDifference({notOnThisBranch: beforeBranch, onThisBranch: newBranchName}),
+    ).toEqual([newCommitHash]);
 
     await expectNoChanges();
 

@@ -1,3 +1,4 @@
+import {isTruthy} from 'augment-vir';
 import {runShellCommand} from 'augment-vir/dist/node-only';
 import {safeInterpolate} from '../augments/shell';
 import {getChanges} from './git-changes';
@@ -39,4 +40,42 @@ export async function makeEmptyCommit(commitMessage: string): Promise<string> {
     await runShellCommand(commitEmptyCommand, {rejectOnError: true});
 
     return await getHeadCommitHash();
+}
+
+export async function getLastNCommits(
+    commitCount: number,
+    refName: string = '',
+): Promise<string[]> {
+    const lastNCommitsCommand = `git log ${safeInterpolate(refName)} -n ${safeInterpolate(
+        String(commitCount),
+    )} --pretty=format:"%H"`;
+
+    const commandResults = await runShellCommand(lastNCommitsCommand, {rejectOnError: true});
+
+    return commandResults.stdout
+        .trim()
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(isTruthy);
+}
+
+export type GetCommitDifferenceInputs = {
+    /** We will get commits that are on this branch but not on the other branch. */
+    onThisBranch: string;
+    /** We will get commits that are NOT on this branch but are on the other branch. */
+    notOnThisBranch: string;
+};
+
+export async function getCommitDifference(inputs: GetCommitDifferenceInputs): Promise<string[]> {
+    const commandString = `git log ${safeInterpolate(inputs.onThisBranch)} ^${
+        inputs.notOnThisBranch
+    } --pretty=format:"%H"`;
+
+    const commandResult = await runShellCommand(commandString, {rejectOnError: true});
+
+    return commandResult.stdout
+        .trim()
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(isTruthy);
 }
