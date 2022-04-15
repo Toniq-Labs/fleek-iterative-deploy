@@ -165,6 +165,7 @@ with commit message:
             // full cherry pick the first full build commit
             await cherryPickCommit({
                 commitHash: buildCommit.hash,
+                acceptAllCherryPickChanges: true,
                 ...cherryPickExtraOptions,
             });
 

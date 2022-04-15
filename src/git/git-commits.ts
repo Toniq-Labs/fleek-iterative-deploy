@@ -109,12 +109,14 @@ export type CherryPickInputs = {
     allowEmpty?: boolean;
     commitHash: string;
     stageOnly?: boolean;
+    acceptAllCherryPickChanges?: boolean;
 };
 
 /** Returns the new head hash. */
 export async function cherryPickCommit(inputs: CherryPickInputs): Promise<string> {
     const allowEmpty = inputs.allowEmpty ? ' --allow-empty' : '';
     const stageOnly = inputs.stageOnly ? ' -n' : '';
+    const forceCherryPick = inputs.acceptAllCherryPickChanges ? ' -X theirs' : '';
 
     const cherryPickCommand = `git cherry-pick${allowEmpty}${stageOnly} ${safeInterpolate(
         inputs.commitHash,
