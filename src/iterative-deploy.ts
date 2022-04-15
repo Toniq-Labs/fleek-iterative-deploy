@@ -216,6 +216,10 @@ with commit message:
 
     await chunkedFiles.reduce(async (lastPromise, currentFiles, index) => {
         await lastPromise;
+        const message = `adding built files from index "${index}" of "${
+            chunkedFiles.length - 1
+        }" with "${currentFiles.length}" total files.`;
+        console.info(message);
         console.info(
             `Copying "${currentFiles.length}" files to Fleek deploy dir:\n  ${currentFiles.join(
                 '\n  ',
@@ -230,7 +234,7 @@ with commit message:
         });
         console.info(`Making commit...`);
         await commitEverythingToCurrentBranch({
-            commitMessage: `adding built files from index "${index}" with "${currentFiles.length}" total files.`,
+            commitMessage: message,
         });
         console.info(`Pushing branch...`);
         await pushBranch({

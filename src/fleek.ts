@@ -8,6 +8,7 @@ import {gql, GraphQLClient, RequestDocument} from 'graphql-request';
 import {checkEnvVar, fleekApiEnvKey, fleekSiteIdEnvKey, fleekTeamIdEnvKey, readEnvVar} from './env';
 
 const tenSecondsMs = 10000;
+const thirtySecondsMs = 30000;
 const oneMinuteMs = 60000;
 const tenMinutesMs = 10 * oneMinuteMs;
 
@@ -37,7 +38,7 @@ export async function waitUntilFleekDeployStarted(thresholdTimestamp: number): P
         }
         return firstAfterStartDeploy.id;
     } else {
-        await wait(oneMinuteMs);
+        await wait(thirtySecondsMs);
         return waitUntilFleekDeployStarted(thresholdTimestamp);
     }
 }
@@ -62,7 +63,7 @@ export async function waitUntilAllDeploysAreFinished(trackingDeployId: string): 
     }
 
     if (pendingDeploys.length) {
-        await wait(oneMinuteMs);
+        await wait(thirtySecondsMs);
         return waitUntilAllDeploysAreFinished(trackingDeployId);
     } else {
         return;
