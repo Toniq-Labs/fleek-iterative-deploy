@@ -265,7 +265,7 @@ with commit message:
     });
 
     const totalEndTimeMs: number = Date.now();
-    const totalElapsedTimeS: number = (totalStartTimeMs - totalEndTimeMs) / 1000;
+    const totalElapsedTimeS: number = (totalEndTimeMs - totalStartTimeMs) / 1000;
 
     console.info(
         `All "${chunkedFiles.length}" deploys completed.\n"${changes.length}" files deployed.\nTook "${totalElapsedTimeS}" seconds`,
