@@ -118,7 +118,7 @@ export async function cherryPickCommit(inputs: CherryPickInputs): Promise<string
     const stageOnly = inputs.stageOnly ? ' -n' : '';
     const forceCherryPick = inputs.acceptAllCherryPickChanges ? ' -X theirs' : '';
 
-    const cherryPickCommand = `git cherry-pick${allowEmpty}${stageOnly} ${safeInterpolate(
+    const cherryPickCommand = `git cherry-pick${allowEmpty}${stageOnly}${forceCherryPick} ${safeInterpolate(
         inputs.commitHash,
     )}`;
     await runShellCommand(cherryPickCommand, {rejectOnError: true});
