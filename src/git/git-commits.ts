@@ -21,10 +21,26 @@ export async function stageEverything(): Promise<void> {
     });
 }
 
-export async function commitEverythingToCurrentBranch(commitMessage: string): Promise<string> {
+export type CommitInputs =
+    | {
+          commitMessage: string;
+          amend?: boolean;
+          noEdit?: false | undefined;
+      }
+    | {
+          commitMessage?: undefined;
+          amend?: boolean;
+          noEdit: true;
+      };
+
+export async function commitEverythingToCurrentBranch(inputs: CommitInputs): Promise<string> {
     await stageEverything();
 
-    const commitCommand = `git commit -m ${safeInterpolate(commitMessage)}`;
+    const amend = inputs.amend ? ' --amend' : '';
+    const noEdit = inputs.noEdit ? ' --no-edit' : '';
+    const message = inputs.noEdit ? '' : ` -m ${safeInterpolate(inputs.commitMessage)}`;
+
+    const commitCommand = `git commit${amend}${noEdit}${message}`;
     await runShellCommand(commitCommand, {rejectOnError: true});
 
     return await getHeadCommitHash();
@@ -89,9 +105,20 @@ export async function getCommitMessage(refName: string): Promise<string> {
     return getCommitMessageCommandOutput.stdout.trim();
 }
 
+export type CherryPickInputs = {
+    allowEmpty?: boolean;
+    commitHash: string;
+    stageOnly?: boolean;
+};
+
 /** Returns the new head hash. */
-export async function cherryPickCommit(commitHash: string): Promise<string> {
-    const cherryPickCommand = `git cherry-pick --allow-empty ${safeInterpolate(commitHash)}`;
+export async function cherryPickCommit(inputs: CherryPickInputs): Promise<string> {
+    const allowEmpty = inputs.allowEmpty ? ' --allow-empty' : '';
+    const stageOnly = inputs.stageOnly ? ' -n' : '';
+
+    const cherryPickCommand = `git cherry-pick${allowEmpty}${stageOnly} ${safeInterpolate(
+        inputs.commitHash,
+    )}`;
     await runShellCommand(cherryPickCommand, {rejectOnError: true});
 
     return getHeadCommitHash();

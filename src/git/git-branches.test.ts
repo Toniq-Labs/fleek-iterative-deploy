@@ -129,9 +129,10 @@ describe(`${rebaseCurrentBranchFromRef.name} and ${pushBranch.name}`, () => {
                     await hardResetCurrentBranchTo(beforeBranch, {local: true});
 
                     if (originalTriggerCommitHash) {
-                        cherryPickedOriginalTriggerCommitHash = await cherryPickCommit(
-                            originalTriggerCommitHash,
-                        );
+                        cherryPickedOriginalTriggerCommitHash = await cherryPickCommit({
+                            commitHash: originalTriggerCommitHash,
+                            allowEmpty: true,
+                        });
                         expect(await getCommitMessage(await getHeadCommitHash())).toBe(
                             await getCommitMessage(originalTriggerCommitHash),
                         );
@@ -193,9 +194,10 @@ describe(`${rebaseCurrentBranchFromRef.name} and ${pushBranch.name}`, () => {
 
                 await hardResetCurrentBranchTo(beforeBranch, {local: true});
 
-                const cherryPickedNewTriggerCommitHash = await cherryPickCommit(
-                    newTriggerCommitHash,
-                );
+                const cherryPickedNewTriggerCommitHash = await cherryPickCommit({
+                    commitHash: newTriggerCommitHash,
+                    allowEmpty: true,
+                });
                 await pushBranch({
                     branchName: persistentTestBranchName,
                     remoteName: 'origin',

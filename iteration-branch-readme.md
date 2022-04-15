@@ -1,6 +1,6 @@
 # DO NOT EDIT THIS BRANCH
 
-This ranch is controlled by `fleek-iterative-deploy` for iterative deploys.
+This branch is controlled by `fleek-iterative-deploy` for iterative deploys.
 
 You should set this branch as your deploy branch in your Fleek config.
 

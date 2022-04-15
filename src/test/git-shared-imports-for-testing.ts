@@ -33,7 +33,7 @@ export async function createFileAndCommitEverythingToNewBranchTest() {
     await expectChangesToInclude(testFilePath);
 
     const newCommitMessage = `test commit ${randomString(16)}`;
-    const newCommitHash = await commitEverythingToCurrentBranch(newCommitMessage);
+    const newCommitHash = await commitEverythingToCurrentBranch({commitMessage: newCommitMessage});
 
     expect(await getHeadCommitHash()).toBe(newCommitHash);
     expect(await getLastNCommits(1)).toEqual([newCommitHash]);

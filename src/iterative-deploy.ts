@@ -97,10 +97,10 @@ message:
             };
         }),
     );
-    const lastFullBuildCommit = previousBuildCommitsWithMessages.find((commitWithMessage) => {
+    const lastFullBuildCommits = previousBuildCommitsWithMessages.filter((commitWithMessage) => {
         return commitWithMessage.message.startsWith(allBuildOutputCommitMessage);
     });
-    console.info({lastFullBuildCommit});
+    console.info({lastFullBuildCommits});
     console.info(
         `Resetting current branch ("${await getCurrentBranchName()}") to trigger branch "${triggerBranchName}" to get latest changes.`,
     );
@@ -109,13 +109,35 @@ message:
         remoteName: gitRemoteName,
     });
 
-    if (lastFullBuildCommit) {
-        console.info(`cherry-picking last full build commit:
-    ${lastFullBuildCommit.hash}
+    await Promise.all(
+        lastFullBuildCommits.map(async (buildCommit, index) => {
+            console.info(`cherry-picking build commit:
+    ${buildCommit.hash}
 with commit message:
-    ${lastFullBuildCommit.message}`);
-        await cherryPickCommit(lastFullBuildCommit.hash);
-    }
+    ${buildCommit.message}`);
+            const cherryPickExtraOptions =
+                index === 0
+                    ? {}
+                    : {
+                          stageOnly: true,
+                      };
+
+            // full cherry pick the first full build commit
+            await cherryPickCommit({
+                commitHash: buildCommit.hash,
+                ...cherryPickExtraOptions,
+            });
+
+            if (index > 0) {
+                // only stage cherry-pick the following commits and then amend them into the first
+                await commitEverythingToCurrentBranch({
+                    amend: true,
+                    noEdit: true,
+                });
+            }
+        }),
+    );
+
     console.info(`Running build command: ${buildCommand}`);
     const buildCommandOutput = await runShellCommand(buildCommand, {
         stderrCallback: (buffer) => console.error(buffer.toString()),
@@ -172,7 +194,11 @@ with commit message:
 
     console.info(`Committing everything...`);
     const newFullBuildCommitMessage = `${allBuildOutputCommitMessage} ${new Date().toISOString()}`;
-    const newFullBuildCommitHash = await commitEverythingToCurrentBranch(newFullBuildCommitMessage);
+    const newFullBuildCommitHash = await commitEverythingToCurrentBranch({
+        commitMessage: newFullBuildCommitMessage,
+        amend: true,
+    });
+    const withLatestBuildCommitHash = await getHeadCommitHash();
     console.info(`Committed all build outputs in "${newFullBuildCommitHash}" with message
     ${newFullBuildCommitMessage}`);
 
@@ -200,9 +226,9 @@ with commit message:
             keepStructureFromDir: buildOutputForCopyingFrom,
         });
         console.info(`Making commit...`);
-        await commitEverythingToCurrentBranch(
-            `adding built files from index "${index}" with "${currentFiles.length}" total files.`,
-        );
+        await commitEverythingToCurrentBranch({
+            commitMessage: `adding built files from index "${index}" with "${currentFiles.length}" total files.`,
+        });
         console.info(`Pushing branch...`);
         await pushBranch({
             branchName: buildOutputBranchName,
@@ -224,7 +250,7 @@ with commit message:
         remote: true,
         remoteName: gitRemoteName,
     });
-    await cherryPickCommit(newFullBuildCommitHash);
+    await cherryPickCommit({commitHash: withLatestBuildCommitHash});
     await pushBranch({
         branchName: buildOutputBranchName,
         remoteName: gitRemoteName,
