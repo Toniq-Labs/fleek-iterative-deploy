@@ -1,7 +1,7 @@
 import {Site} from '@fleekhq/fleek-cli/dist/services/api/models';
 import {readFile} from 'fs/promises';
 import {join} from 'path';
-import {fleekApiEnvKey, fleekSiteIdEnvKey, fleekTeamIdEnvKey} from '../env';
+import {fleekApiEnvKey, fleekSiteIdEnvKey, fleekTeamIdEnvKey, readEnvVar} from '../env';
 import {keysDir} from '../file-paths';
 import {getTeamSites} from '../fleek';
 
@@ -29,8 +29,18 @@ export async function tryToSetEnvVariables() {
     await Promise.all(
         keys.map(async (key) => {
             try {
-                const keyFileContents = (await readFile(join(keysDir, key.key))).toString();
-                process.env[key.key] = keyFileContents.trim();
+                let alreadyExists = false;
+                try {
+                    const envValue = readEnvVar(key);
+                    if (envValue) {
+                        alreadyExists = true;
+                    }
+                } catch (error) {}
+
+                if (!alreadyExists) {
+                    const keyFileContents = (await readFile(join(keysDir, key.key))).toString();
+                    process.env[key.key] = keyFileContents.trim();
+                }
             } catch (error) {}
         }),
     );
