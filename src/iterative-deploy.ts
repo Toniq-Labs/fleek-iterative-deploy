@@ -225,8 +225,6 @@ with commit message:
                 '\n  ',
             )}`,
         );
-        await remove(fullFleekDeployDirPath);
-        await ensureDir(fullFleekDeployDirPath);
         await copyFilesToDir({
             copyToDir: fullFleekDeployDirPath,
             files: currentFiles,
@@ -252,17 +250,6 @@ with commit message:
 
         console.info(`Fleek deploy finished. Took "${deployTotalTimeS}" seconds.`);
     }, Promise.resolve());
-
-    await hardResetCurrentBranchTo(triggerBranchName, {
-        remote: true,
-        remoteName: gitRemoteName,
-    });
-    await cherryPickCommit({commitHash: withLatestBuildCommitHash});
-    await pushBranch({
-        branchName: buildOutputBranchName,
-        remoteName: gitRemoteName,
-        force: true,
-    });
 
     const totalEndTimeMs: number = Date.now();
     const totalElapsedTimeS: number = (totalEndTimeMs - totalStartTimeMs) / 1000;
