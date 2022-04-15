@@ -4,6 +4,7 @@ import {readdir} from 'fs/promises';
 import {join, relative} from 'path';
 import {divideArray} from './augments/array';
 import {copyFilesToDir, removeMatchFromFile} from './augments/fs';
+import {githubRef, readEnvVar} from './env';
 import {buildOutputForCopyingFrom, readmeForIterationBranchFile} from './file-paths';
 import {waitUntilAllDeploysAreFinished, waitUntilFleekDeployStarted} from './fleek';
 import {
@@ -23,13 +24,13 @@ import {
     getHeadCommitHash,
     stageEverything,
 } from './git/git-commits';
+import {getRefBaseName} from './git/git-shared-imports';
 import {setFleekIterativeDeployGitUser} from './git/set-fleek-iterative-deploy-git-user';
 
 export type DeployIterativelyInputs = {
-    buildOutputBranchName: string;
+    fleekDeployBranchName: string;
     buildCommand: string;
-    triggerBranch: string;
-    fleekDeployDir: string;
+    fleekPublicDir: string;
     filesPerUpload: number;
     gitRemoteName: string;
 };
@@ -37,29 +38,39 @@ export type DeployIterativelyInputs = {
 const allBuildOutputCommitMessage = 'add all build output';
 
 export async function deployIteratively({
-    buildOutputBranchName,
+    fleekDeployBranchName,
     buildCommand,
-    triggerBranch,
-    fleekDeployDir,
+    fleekPublicDir,
     filesPerUpload,
     gitRemoteName,
 }: DeployIterativelyInputs) {
     const totalStartTimeMs: number = Date.now();
 
-    const fullFleekDeployDirPath = join(process.cwd(), fleekDeployDir);
+    const triggerBranchName =
+        getRefBaseName(readEnvVar(githubRef)) ?? (await getCurrentBranchName());
+
+    if (!triggerBranchName) {
+        throw new Error(`Failed to get trigger branch name`);
+    }
+    console.info({triggerBranchName});
+
+    if (fleekDeployBranchName === triggerBranchName) {
+        throw new Error(
+            `Trigger branch name cannot be the same as fleekDeployBranchName: "${fleekDeployBranchName}"`,
+        );
+    }
+
+    const fullFleekDeployDirPath = join(process.cwd(), fleekPublicDir);
 
     await setFleekIterativeDeployGitUser();
 
     await updateAllFromRemote();
 
-    console.info(`Checking out "${triggerBranch}"`);
-    await checkoutBranch(triggerBranch);
-
-    const triggerBranchName = await getCurrentBranchName();
-    if (!triggerBranchName) {
-        throw new Error(`Could not find current branch name.`);
+    if ((await getCurrentBranchName()) !== triggerBranchName) {
+        console.info(`Checking out "${triggerBranchName}"`);
+        await checkoutBranch(triggerBranchName);
     }
-    console.info({triggerBranchName});
+
     const triggerBranchHeadHash = await getHeadCommitHash();
     const triggerBranchHeadMessage = await getCommitMessage(triggerBranchHeadHash);
     console.info(`on commit:
@@ -67,9 +78,9 @@ export async function deployIteratively({
 with message:
     ${triggerBranchHeadMessage}`);
 
-    console.info(`Checking out ${buildOutputBranchName}`);
+    console.info(`Checking out ${fleekDeployBranchName}`);
     await definitelyCheckoutBranch({
-        branchName: buildOutputBranchName,
+        branchName: fleekDeployBranchName,
         allowFromRemote: true,
         remoteName: gitRemoteName,
     });
@@ -84,7 +95,7 @@ message:
 
     const previousBuildCommits = await getCommitDifference({
         notOnThisBranch: triggerBranchName,
-        onThisBranch: buildOutputBranchName,
+        onThisBranch: fleekDeployBranchName,
     });
     console.info(`previous build commits:
     ${previousBuildCommits.join('\n    ')}`);
@@ -184,14 +195,14 @@ with commit message:
     const changes: Readonly<string[]> = await getChangedCurrentFiles(relativeCopyFromDir);
     console.info(`"${changes.length}" changed files detected:\n    ${changes.join('\n    ')}`);
 
-    console.info(`un-git-ignoring "${fleekDeployDir}"`);
-    const wasRemoved = await removeMatchFromFile({fileName: '.gitignore', match: fleekDeployDir});
+    console.info(`un-git-ignoring "${fleekPublicDir}"`);
+    const wasRemoved = await removeMatchFromFile({fileName: '.gitignore', match: fleekPublicDir});
 
     if (wasRemoved) {
-        console.info(`Successfully removed git-ignore for "${fleekDeployDir}"`);
+        console.info(`Successfully removed git-ignore for "${fleekPublicDir}"`);
     } else {
         console.info(
-            `Failed to remove git-ignore for "${fleekDeployDir}". Maybe it wasn't git-ignored in the first place?`,
+            `Failed to remove git-ignore for "${fleekPublicDir}". Maybe it wasn't git-ignored in the first place?`,
         );
     }
 
@@ -236,7 +247,7 @@ with commit message:
         });
         console.info(`Pushing branch...`);
         await pushBranch({
-            branchName: buildOutputBranchName,
+            branchName: fleekDeployBranchName,
             remoteName: gitRemoteName,
             force: true,
         });

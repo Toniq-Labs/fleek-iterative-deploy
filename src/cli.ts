@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import {defaultInputs} from './cli-default-inputs';
 import {getTeamSites} from './fleek';
 import {deployIteratively, DeployIterativelyInputs} from './iterative-deploy';
 
@@ -16,15 +17,6 @@ export const afterSiteList = 'Done logging site list';
 
 export const beforeInputs = 'Logging inputs below';
 export const afterInputs = 'Done logging inputs';
-
-export const defaultInputs: Readonly<DeployIterativelyInputs> = {
-    buildCommand: 'npm run build',
-    buildOutputBranchName: 'FLEEK_ITERATIVE_DEPLOY',
-    fleekDeployDir: 'build',
-    triggerBranch: 'main',
-    filesPerUpload: 50,
-    gitRemoteName: 'origin',
-} as const;
 
 async function main() {
     const cliArgs = process.argv.slice(2);
@@ -44,11 +36,11 @@ async function main() {
     });
 
     const buildCommand: string = args[0] ?? defaultInputs.buildCommand;
-    const buildOutputBranchName: string = args[1] ?? defaultInputs.buildOutputBranchName;
-    const triggerBranch: string = args[2] ?? defaultInputs.triggerBranch;
-    const fleekDeployDir: string = args[3] ?? defaultInputs.fleekDeployDir;
-    const rawFilesPerUpload: number = Number(args[4]);
-    const gitRemoteName: string = args[5] ?? defaultInputs.gitRemoteName;
+    const fleekPublicDir: string = args[1] ?? defaultInputs.fleekPublicDir;
+    const rawFilesPerUpload: number = Number(args[2]);
+    const fleekDeployBranchName: string = args[3] ?? defaultInputs.fleekDeployBranchName;
+    const gitRemoteName: string = args[4] ?? defaultInputs.gitRemoteName;
+
     const filesPerUpload =
         isNaN(rawFilesPerUpload) || rawFilesPerUpload < 1
             ? defaultInputs.filesPerUpload
@@ -56,9 +48,8 @@ async function main() {
 
     const deployInputs: DeployIterativelyInputs = {
         buildCommand,
-        triggerBranch,
-        buildOutputBranchName,
-        fleekDeployDir,
+        fleekDeployBranchName,
+        fleekPublicDir,
         filesPerUpload,
         gitRemoteName,
     };

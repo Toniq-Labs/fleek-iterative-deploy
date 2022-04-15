@@ -1,6 +1,7 @@
 import {Site} from '@fleekhq/fleek-cli/dist/services/api/models';
 import {runShellCommand} from 'augment-vir/dist/node-only';
-import {afterInputs, afterSiteList, beforeInputs, beforeSiteList, defaultInputs} from './cli';
+import {afterInputs, afterSiteList, beforeInputs, beforeSiteList} from './cli';
+import {defaultInputs} from './cli-default-inputs';
 import {getTeamSites} from './fleek';
 import {DeployIterativelyInputs} from './iterative-deploy';
 import {tryToSetEnvVariables} from './test/fleek-testing';

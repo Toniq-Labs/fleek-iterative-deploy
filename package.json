@@ -1,6 +1,6 @@
 {
     "name": "fleek-iterative-deploy",
-    "version": "0.0.14",
+    "version": "0.0.15",
     "description": "Iteratively deploy Fleek from a git repo",
     "keywords": [
         "fleek",
@@ -29,7 +29,7 @@
         "spellcheck": "virmator spellcheck",
         "test": "virmator test --runInBand",
         "test:cli": "virmator compile && npm run set-runnable && node ./dist/cli.js --dry-run",
-        "test:full": "npm test && virmator compile && npm run spellcheck && virmator format check",
+        "test:full": "npm test && virmator compile && npm run spellcheck && virmator format check && virmator code-in-markdown --check README.md",
         "test:sites": "virmator compile && npm run set-runnable && node ./dist/cli.js --sites"
     },
     "dependencies": {
