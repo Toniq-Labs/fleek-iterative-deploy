@@ -109,34 +109,34 @@ message:
         remoteName: gitRemoteName,
     });
 
-    await Promise.all(
-        lastFullBuildCommits.map(async (buildCommit, index) => {
-            console.info(`cherry-picking build commit:
+    // use reduce here so that commits don't run in parallel
+    await lastFullBuildCommits.reduce(async (lastPromise, buildCommit, index) => {
+        await lastPromise;
+        console.info(`cherry-picking build commit:
     ${buildCommit.hash}
 with commit message:
     ${buildCommit.message}`);
-            const cherryPickExtraOptions =
-                index === 0
-                    ? {}
-                    : {
-                          stageOnly: true,
-                      };
+        const cherryPickExtraOptions =
+            index === 0
+                ? {}
+                : {
+                      stageOnly: true,
+                  };
 
-            // full cherry pick the first full build commit
-            await cherryPickCommit({
-                commitHash: buildCommit.hash,
-                ...cherryPickExtraOptions,
+        // full cherry pick the first full build commit
+        await cherryPickCommit({
+            commitHash: buildCommit.hash,
+            ...cherryPickExtraOptions,
+        });
+
+        if (index > 0) {
+            // only stage cherry-pick the following commits and then amend them into the first
+            await commitEverythingToCurrentBranch({
+                amend: true,
+                noEdit: true,
             });
-
-            if (index > 0) {
-                // only stage cherry-pick the following commits and then amend them into the first
-                await commitEverythingToCurrentBranch({
-                    amend: true,
-                    noEdit: true,
-                });
-            }
-        }),
-    );
+        }
+    }, Promise.resolve());
 
     console.info(`Running build command: ${buildCommand}`);
     const buildCommandOutput = await runShellCommand(buildCommand, {
