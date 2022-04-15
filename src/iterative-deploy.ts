@@ -109,34 +109,37 @@ message:
         remoteName: gitRemoteName,
     });
 
-    // use reduce here so that commits don't run in parallel
-    await lastFullBuildCommits.reduce(async (lastPromise, buildCommit, index) => {
-        await lastPromise;
-        console.info(`cherry-picking build commit:
+    await lastFullBuildCommits
+        // reverse so we apply the commits in the order they were originally applied
+        .reverse()
+        // use reduce here so that commits don't run in parallel
+        .reduce(async (lastPromise, buildCommit, index) => {
+            await lastPromise;
+            console.info(`cherry-picking build commit:
     ${buildCommit.hash}
 with commit message:
     ${buildCommit.message}`);
-        const cherryPickExtraOptions =
-            index === 0
-                ? {}
-                : {
-                      stageOnly: true,
-                  };
+            const cherryPickExtraOptions =
+                index === 0
+                    ? {}
+                    : {
+                          stageOnly: true,
+                      };
 
-        // full cherry pick the first full build commit
-        await cherryPickCommit({
-            commitHash: buildCommit.hash,
-            ...cherryPickExtraOptions,
-        });
-
-        if (index > 0) {
-            // only stage cherry-pick the following commits and then amend them into the first
-            await commitEverythingToCurrentBranch({
-                amend: true,
-                noEdit: true,
+            // full cherry pick the first full build commit
+            await cherryPickCommit({
+                commitHash: buildCommit.hash,
+                ...cherryPickExtraOptions,
             });
-        }
-    }, Promise.resolve());
+
+            if (index > 0) {
+                // only stage cherry-pick the following commits and then amend them into the first
+                await commitEverythingToCurrentBranch({
+                    amend: true,
+                    noEdit: true,
+                });
+            }
+        }, Promise.resolve());
 
     console.info(`Running build command: ${buildCommand}`);
     const buildCommandOutput = await runShellCommand(buildCommand, {
