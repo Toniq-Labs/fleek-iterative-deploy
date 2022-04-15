@@ -96,7 +96,7 @@ export async function expectChangesToInclude(filePaths: string[] | string): Prom
         filePaths = [filePaths];
     }
     expect(rawChanges.length).toBeGreaterThanOrEqual(filePaths.length);
-    const joinedChanges = rawChanges.map((change) => change.relativeFilePath).join('\n');
+    const joinedChanges = rawChanges.map((change) => change.currentRelativeFilePath).join('\n');
     filePaths.forEach((filePath) => {
         const relativePath = toPosixPath(relative(process.cwd(), filePath));
         const includes = joinedChanges.includes(relativePath);

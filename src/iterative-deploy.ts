@@ -14,7 +14,7 @@ import {
     pushBranch,
     updateAllFromRemote,
 } from './git/git-branches';
-import {Change, getChangesInDirectory} from './git/git-changes';
+import {getChangedCurrentFiles} from './git/git-changes';
 import {
     cherryPickCommit,
     commitEverythingToCurrentBranch,
@@ -156,12 +156,8 @@ with commit message:
 
     console.info(`Getting changes in "${relativeCopyFromDir}"`);
     await stageEverything();
-    const changes: Readonly<Change[]> = await getChangesInDirectory(relativeCopyFromDir);
-    console.info(
-        `"${changes.length}" changed files detected:\n    ${changes
-            .map((change) => change.fullLine)
-            .join('\n    ')}`,
-    );
+    const changes: Readonly<string[]> = await getChangedCurrentFiles(relativeCopyFromDir);
+    console.info(`"${changes.length}" changed files detected:\n    ${changes.join('\n    ')}`);
 
     console.info(`un-git-ignoring "${fleekDeployDir}"`);
     const wasRemoved = await removeMatchFromFile({fileName: '.gitignore', match: fleekDeployDir});
@@ -182,7 +178,7 @@ with commit message:
 
     const chunkedFiles: Readonly<string[][]> = divideArray(
         filesPerUpload,
-        changes.map((change) => join(process.cwd(), change.relativeFilePath)),
+        changes.map((changedFile) => join(process.cwd(), changedFile)),
     );
     console.info(`Changed files separated into "${chunkedFiles.length}" chunks.`);
     console.info(

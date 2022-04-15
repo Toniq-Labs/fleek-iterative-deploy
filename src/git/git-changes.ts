@@ -1,17 +1,20 @@
-import {isTruthy} from 'augment-vir';
+import {isTruthy, safeMatch} from 'augment-vir';
 import {runShellCommand, toPosixPath} from 'augment-vir/dist/node-only';
+import {existsSync} from 'fs';
 
 export async function getChangesInDirectory(relativeDirectoryPath: string): Promise<Change[]> {
     const changes = await getChanges();
 
     return changes.filter((change) => {
-        return change.relativeFilePath.startsWith(toPosixPath(relativeDirectoryPath));
+        return change.currentRelativeFilePath.startsWith(toPosixPath(relativeDirectoryPath));
     });
 }
 
 export type Change = {
     fullLine: string;
-    relativeFilePath: string;
+    fromFilePath?: string | undefined;
+    currentRelativeFilePath: string;
+    changeType: string;
 };
 
 export async function getChanges(): Promise<Change[]> {
@@ -24,24 +27,56 @@ export async function getChanges(): Promise<Change[]> {
         // remove potentially empty lines
         .filter(isTruthy)
         .map((line): Change => {
-            const fileName = extractFileNameFromChangeLine(line);
-            if (!fileName) {
+            const fileAndType = getFileAndChangeTypeFromChangeLine(line);
+            if (!fileAndType.currentRelativeFilePath) {
                 throw new Error(
                     `Invalid extraction ocurred for extracting file name from change line "${line}"`,
                 );
             }
             return {
                 fullLine: line.trim(),
-                relativeFilePath: fileName,
+                changeType: fileAndType.changeType,
+                fromFilePath: fileAndType.fromFilePath,
+                currentRelativeFilePath: fileAndType.currentRelativeFilePath,
             };
         });
 
     return modifications;
 }
 
-export function extractFileNameFromChangeLine(changeLine: string): string {
-    return changeLine
-        .trim()
-        .replace(/^\S+\s+?/, '')
-        .trim();
+export async function getChangedCurrentFiles(
+    relativeDirectoryPath?: string | undefined,
+): Promise<string[]> {
+    const changes = relativeDirectoryPath
+        ? await getChangesInDirectory(relativeDirectoryPath)
+        : await getChanges();
+    return changes
+        .map((change) => change.currentRelativeFilePath)
+        .filter((filePath) => {
+            return existsSync(filePath);
+        });
+}
+
+export function getFileAndChangeTypeFromChangeLine(
+    changeLine: string,
+): Pick<Change, 'fromFilePath' | 'changeType' | 'currentRelativeFilePath'> {
+    const [
+        ,
+        changeType,
+        fromFilePath,
+        toFilePath,
+    ] = safeMatch(changeLine.trim(), /^(\S+)\s+(.+?)(?:$|\s+->\s+(.+)$)/);
+
+    if (!changeType) {
+        throw new Error(`Failed to extract changeType from "${changeLine}"`);
+    }
+    if (!fromFilePath) {
+        throw new Error(`Failed to extract fromFilePath from "${changeLine}"`);
+    }
+
+    return {
+        changeType,
+        fromFilePath: toFilePath ? fromFilePath : undefined,
+        currentRelativeFilePath: toFilePath ? toFilePath : fromFilePath,
+    };
 }

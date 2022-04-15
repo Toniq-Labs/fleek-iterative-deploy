@@ -9,7 +9,7 @@ import {
     expectNoChanges,
     gitIt,
 } from '../test/git-shared-imports-for-testing';
-import {extractFileNameFromChangeLine, getChanges, getChangesInDirectory} from './git-changes';
+import {getChanges, getChangesInDirectory, getFileAndChangeTypeFromChangeLine} from './git-changes';
 import {stageEverything} from './git-commits';
 
 describe(getChanges, () => {
@@ -106,23 +106,27 @@ describe(getChangesInDirectory.name, () => {
     });
 });
 
-describe(extractFileNameFromChangeLine.name, () => {
+describe(getFileAndChangeTypeFromChangeLine.name, () => {
     it('should remove changed statuses', () => {
         const filesWithStatus = [
             ' A  .fleek-iterative-deploy/build-output/000a549f.svg',
             'A  .fleek-iterative-deploy/build-output/000a549f.svg',
             'A .fleek-iterative-deploy/build-output/000a549f.svg',
             ' M src/iterative-deploy.ts',
-            '?? blah-blah-blah.ts',
+            '?? blah-blah-blah.ts -> .stuff-stuff-stuff.svg',
+            ' D build-output/0307aa26.svg -> .fleek-iterative-deploy/build-output/03eef385.svg',
         ];
         const filesWithoutStatus = [
             '.fleek-iterative-deploy/build-output/000a549f.svg',
             '.fleek-iterative-deploy/build-output/000a549f.svg',
             '.fleek-iterative-deploy/build-output/000a549f.svg',
             'src/iterative-deploy.ts',
-            'blah-blah-blah.ts',
+            '.stuff-stuff-stuff.svg',
+            '.fleek-iterative-deploy/build-output/03eef385.svg',
         ];
-        const extractedFileNames = filesWithStatus.map(extractFileNameFromChangeLine);
+        const extractedFileNames = filesWithStatus
+            .map(getFileAndChangeTypeFromChangeLine)
+            .map((change) => change.currentRelativeFilePath);
         expect(extractedFileNames).toEqual(filesWithoutStatus);
     });
 });
