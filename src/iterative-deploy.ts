@@ -36,6 +36,7 @@ export type DeployIterativelyInputs = {
 };
 
 const allBuildOutputCommitMessage = 'add all build output';
+const noBuildTrigger = /nobuild!|!nobuild/;
 
 export async function deployIteratively({
     fleekDeployBranchName,
@@ -77,6 +78,12 @@ export async function deployIteratively({
     ${triggerBranchHeadHash}
 with message:
     ${triggerBranchHeadMessage}`);
+
+    if (triggerBranchHeadMessage.toLowerCase().match(noBuildTrigger)) {
+        throw new Error(
+            `Aborting build due to "${noBuildTrigger}" match in HEAD commit message: "${triggerBranchHeadMessage}"`,
+        );
+    }
 
     console.info(`Checking out ${fleekDeployBranchName}`);
     await definitelyCheckoutBranch({

@@ -1,6 +1,6 @@
 # fleek-iterative-deploy
 
-Package that will iteratively deploy a site to Fleek by gradually committing all changed files to the deploy directory in a dedicated deploy branch.
+Package that will iteratively deploy a site to [Fleek](https://fleek.co) by gradually committing all changed files to the deploy directory in a dedicated deploy branch.
 
 Requires Node.js 16.
 
@@ -145,3 +145,13 @@ export const defaultInputs: Readonly<DeployIterativelyInputs> = {
     gitRemoteName: 'origin',
 } as const;
 ```
+
+## Skipping deploy
+
+To skip a deploy, add `nobuild!` or `!nobuild` to your latest commit message before pushing to your branch. This will abort the deploy before it starts!
+
+# Example
+
+The following currently use this package to deploy to the IC via Fleek.
+
+-   https://github.com/electrovir/test-iterative-fleek-deploy
