@@ -15,7 +15,7 @@ import {
     pushBranch,
     updateAllFromRemote,
 } from './git/git-branches';
-import {getChangedCurrentFiles} from './git/git-changes';
+import {getChangedCurrentFiles, getChanges} from './git/git-changes';
 import {
     cherryPickCommit,
     commitEverythingToCurrentBranch,
@@ -68,7 +68,7 @@ export async function deployIteratively({
     await updateAllFromRemote();
 
     if ((await getCurrentBranchName()) !== triggerBranchName) {
-        console.info(`Checking out "${triggerBranchName}"`);
+        console.info(`Checking out triggerBranchName: "${triggerBranchName}"`);
         await checkoutBranch(triggerBranchName);
     }
 
@@ -85,7 +85,25 @@ with message:
         );
     }
 
-    console.info(`Checking out ${fleekDeployBranchName}`);
+    const preStartChanges = await getChanges();
+
+    if (preStartChanges.length) {
+        console.info(
+            `Changes detected (from npm install maybe?):\n    ${preStartChanges
+                .map((change) => change.fullLine)
+                .join('\n    ')}`,
+        );
+        console.info(`hard resetting branch...`);
+        await hardResetCurrentBranchTo(triggerBranchName, {local: true});
+        const newCommitHash = await getHeadCommitHash();
+        console.info(`Now on "${newCommitHash}"`);
+        if (triggerBranchHeadHash !== newCommitHash) {
+            console.info({triggerBranchHeadHash, newCommitHash});
+            throw new Error(`HEAD hash changed after resetting to the same branch we were on.`);
+        }
+    }
+
+    console.info(`Checking out fleekDeployBranchName: "${fleekDeployBranchName}"`);
     await definitelyCheckoutBranch({
         branchName: fleekDeployBranchName,
         allowFromRemote: true,
