@@ -14,7 +14,7 @@ import {
     pushBranch,
     updateAllFromRemote,
 } from './git/git-branches';
-import {getChanges, getChangesInDirectory} from './git/git-changes';
+import {Change, getChangesInDirectory} from './git/git-changes';
 import {
     cherryPickCommit,
     commitEverythingToCurrentBranch,
@@ -156,11 +156,11 @@ with commit message:
 
     console.info(`Getting changes in "${relativeCopyFromDir}"`);
     await stageEverything();
-    const allChangesForDebugging = await getChanges();
-    console.log({allChangesForDebugging});
-    const changedFiles: Readonly<string[]> = await getChangesInDirectory(relativeCopyFromDir);
+    const changes: Readonly<Change[]> = await getChangesInDirectory(relativeCopyFromDir);
     console.info(
-        `"${changedFiles.length}" changed files detected:\n    ${changedFiles.join('\n    ')}`,
+        `"${changes.length}" changed files detected:\n    ${changes
+            .map((change) => change.fullLine)
+            .join('\n    ')}`,
     );
 
     console.info(`un-git-ignoring "${fleekDeployDir}"`);
@@ -180,8 +180,14 @@ with commit message:
     console.info(`Committed all build outputs in "${newFullBuildCommitHash}" with message
     ${newFullBuildCommitMessage}`);
 
-    const chunkedFiles: Readonly<string[][]> = divideArray(filesPerUpload, changedFiles);
+    const chunkedFiles: Readonly<string[][]> = divideArray(
+        filesPerUpload,
+        changes.map((change) => join(process.cwd(), change.relativeFilePath)),
+    );
     console.info(`Changed files separated into "${chunkedFiles.length}" chunks.`);
+    console.info(
+        `Starting chunk copying with keep structure dir of "${buildOutputForCopyingFrom}"`,
+    );
 
     await chunkedFiles.reduce(async (lastPromise, currentFiles, index) => {
         await lastPromise;
@@ -231,6 +237,6 @@ with commit message:
     const totalElapsedTimeS: number = (totalStartTimeMs - totalEndTimeMs) / 1000;
 
     console.info(
-        `All "${chunkedFiles.length}" deploys completed.\n"${changedFiles.length}" files deployed.\nTook "${totalElapsedTimeS}" seconds`,
+        `All "${chunkedFiles.length}" deploys completed.\n"${changes.length}" files deployed.\nTook "${totalElapsedTimeS}" seconds`,
     );
 }

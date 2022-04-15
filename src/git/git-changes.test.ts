@@ -9,7 +9,7 @@ import {
     expectNoChanges,
     gitIt,
 } from '../test/git-shared-imports-for-testing';
-import {getChanges, getChangesInDirectory} from './git-changes';
+import {extractFileNameFromChangeLine, getChanges, getChangesInDirectory} from './git-changes';
 import {stageEverything} from './git-commits';
 
 describe(getChanges, () => {
@@ -103,5 +103,26 @@ describe(getChangesInDirectory.name, () => {
             .length;
 
         expect(afterDeletionContentsCount).toBe(beforeContentsCount);
+    });
+});
+
+describe(extractFileNameFromChangeLine.name, () => {
+    it('should remove changed statuses', () => {
+        const filesWithStatus = [
+            ' A  .fleek-iterative-deploy/build-output/000a549f.svg',
+            'A  .fleek-iterative-deploy/build-output/000a549f.svg',
+            'A .fleek-iterative-deploy/build-output/000a549f.svg',
+            ' M src/iterative-deploy.ts',
+            '?? blah-blah-blah.ts',
+        ];
+        const filesWithoutStatus = [
+            '.fleek-iterative-deploy/build-output/000a549f.svg',
+            '.fleek-iterative-deploy/build-output/000a549f.svg',
+            '.fleek-iterative-deploy/build-output/000a549f.svg',
+            'src/iterative-deploy.ts',
+            'blah-blah-blah.ts',
+        ];
+        const extractedFileNames = filesWithStatus.map(extractFileNameFromChangeLine);
+        expect(extractedFileNames).toEqual(filesWithoutStatus);
     });
 });
