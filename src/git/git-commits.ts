@@ -83,9 +83,13 @@ export type GetCommitDifferenceInputs = {
 };
 
 export async function getCommitDifference(inputs: GetCommitDifferenceInputs): Promise<string[]> {
-    const commandString = `git log ${safeInterpolate(inputs.onThisBranch)} ^${
-        inputs.notOnThisBranch
-    } --pretty=format:"%H"`;
+    const commandString = `git log ${safeInterpolate(inputs.onThisBranch)} ^${safeInterpolate(
+        inputs.notOnThisBranch,
+    )} --pretty=format:"%H"`;
+
+    console.log(`hash of ${inputs.onThisBranch}: ${await getRefHash(inputs.onThisBranch)}`);
+    console.log(`hash of ${inputs.notOnThisBranch}: ${await getRefHash(inputs.notOnThisBranch)}`);
+    console.log(commandString);
 
     const commandResult = await runShellCommand(commandString, {rejectOnError: true});
 
@@ -94,6 +98,13 @@ export async function getCommitDifference(inputs: GetCommitDifferenceInputs): Pr
         .split('\n')
         .map((line) => line.trim())
         .filter(isTruthy);
+}
+
+export async function getRefHash(refName: string): Promise<string> {
+    const command = `git rev-parse ${safeInterpolate(refName)}`;
+    const output = await runShellCommand(command, {rejectOnError: true});
+
+    return output.stdout.trim();
 }
 
 export async function getCommitMessage(refName: string): Promise<string> {

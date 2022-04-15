@@ -114,9 +114,9 @@ with message:
     console.info(`Now on branch:
     ${await getCurrentBranchName()}
 commit:
-    ${buildOutputBranchHeadHash}
+    "${buildOutputBranchHeadHash}"
 message:
-    ${buildOutputBranchHeadMessage}`);
+    "${buildOutputBranchHeadMessage}"`);
 
     const previousBuildCommits = await getCommitDifference({
         notOnThisBranch: triggerBranchName,
@@ -258,8 +258,8 @@ with commit message:
         }" with "${currentFiles.length}" total files.`;
         console.info(message);
         console.info(
-            `Copying "${currentFiles.length}" files to Fleek deploy dir:\n  ${currentFiles.join(
-                '\n  ',
+            `Copying "${currentFiles.length}" files to Fleek deploy dir:\n    ${currentFiles.join(
+                '\n    ',
             )}`,
         );
         await copyFilesToDir({
