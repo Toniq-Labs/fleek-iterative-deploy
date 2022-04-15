@@ -211,6 +211,7 @@ with commit message:
         await pushBranch({
             branchName: buildOutputBranchName,
             remoteName: gitRemoteName,
+            force: true,
         });
         const deployStartTimeMs: number = Date.now();
         console.info(`Waiting for Fleek deploy to start...`);
@@ -231,6 +232,7 @@ with commit message:
     await pushBranch({
         branchName: buildOutputBranchName,
         remoteName: gitRemoteName,
+        force: true,
     });
 
     const totalEndTimeMs: number = Date.now();
