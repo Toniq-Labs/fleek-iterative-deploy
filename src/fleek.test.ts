@@ -6,7 +6,6 @@ describe(getSiteDeploys.name, () => {
         await tryToSetEnvVariables();
         const deploys = await getSiteDeploys((await getDeployTestingSite()).id);
         expect(deploys).toBeDefined();
-        console.log(deploys);
         expect(deploys.length).toBeGreaterThan(0);
     }, 60000);
 });
@@ -15,7 +14,6 @@ describe(getTeamSites.name, () => {
     it('should get some sites', async () => {
         await tryToSetEnvVariables();
         const sites = await getTeamSites();
-        console.log(sites);
         expect(sites).toBeDefined();
         expect(sites.length).toBeGreaterThan(0);
     }, 60000);

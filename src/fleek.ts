@@ -5,7 +5,7 @@ import AuthenticationService from '@fleekhq/fleek-cli/dist/services/authenticati
 import {EnvironmentService} from '@fleekhq/fleek-cli/dist/services/environment/environment.service';
 import {wait} from 'augment-vir';
 import {gql, GraphQLClient, RequestDocument} from 'graphql-request';
-import {checkEnvVar, fleekApiEnvKey, fleekTeamIdEnvKey, readEnvVar} from './env';
+import {checkEnvVar, fleekApiEnvKey, fleekSiteIdEnvKey, fleekTeamIdEnvKey, readEnvVar} from './env';
 
 const tenSecondsMs = 10000;
 const oneMinuteMs = 60000;
@@ -18,7 +18,7 @@ export async function waitUntilFleekDeployStarted(thresholdTimestamp: number): P
         throw new Error(`Waited 10 minutes but Fleek deploy has still not started.`);
     }
 
-    const deploys = await getSiteDeploys(readEnvVar(fleekTeamIdEnvKey));
+    const deploys = await getSiteDeploys(readEnvVar(fleekSiteIdEnvKey));
     const afterStartTimeDeploys = deploys.filter((deploy) => {
         const deployStartTime: number = Date.parse(deploy.startedAt);
         if (isNaN(deployStartTime)) {
@@ -45,7 +45,7 @@ export async function waitUntilFleekDeployStarted(thresholdTimestamp: number): P
 export async function waitUntilAllDeploysAreFinished(trackingDeployId: string): Promise<void> {
     await wait(tenSecondsMs);
 
-    const deploys = await getSiteDeploys(readEnvVar(fleekTeamIdEnvKey));
+    const deploys = await getSiteDeploys(readEnvVar(fleekSiteIdEnvKey));
     const pendingDeploys = deploys.filter((deploy) => {
         return deploy.status === DeployStatus.InProgress;
     });
