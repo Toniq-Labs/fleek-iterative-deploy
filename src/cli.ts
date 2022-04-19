@@ -35,9 +35,9 @@ async function main() {
         return true;
     });
 
-    const buildCommand: string = args[0] ?? defaultInputs.buildCommand;
-    const fleekPublicDir: string = args[1] ?? defaultInputs.fleekPublicDir;
-    const rawFilesPerUpload: number = Number(args[2]);
+    const rawFilesPerUpload: number = Number(args[0]);
+    const buildCommand: string = args[1] ?? defaultInputs.buildCommand;
+    const fleekPublicDir: string = args[2] ?? defaultInputs.fleekPublicDir;
     const fleekDeployBranchName: string = args[3] ?? defaultInputs.fleekDeployBranchName;
     const gitRemoteName: string = args[4] ?? defaultInputs.gitRemoteName;
 

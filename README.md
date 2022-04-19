@@ -121,12 +121,12 @@ npx fleek-iterative-deploy
 ## Run with custom inputs
 
 ```bash
-npx fleek-iterative-deploy "<buildCommand>" "<fleekPublicDir>" "<filesPerUpload>" "<fleekDeployBranchName>" "<gitRemoteName>"
+npx fleek-iterative-deploy "<filesPerUpload>" "<buildCommand>" "<fleekPublicDir>" "<fleekDeployBranchName>" "<gitRemoteName>"
 ```
 
+-   **`filesPerUpload`**: this controls how many files to deploy at once.
 -   **`buildCommand`**: this is the bash command which `fleek-iterative-deploy` will run to build your website.
 -   **`fleekPublicDir`**: this is the directory which Fleek is configured to deploy files from; the `publicDir` property in a Fleek config file.
--   **`filesPerUpload`**: this controls how many files to deploy at once.
 -   **`fleekDeployBranchName`**: this is the branch which Fleek will deploy from. This should _not_ be the same as the branch that triggers your GitHub Action.
 -   **`gitRemoteName`**: this is the name of your git remote when the action is running. This will likely never need to be changed.
 
@@ -138,9 +138,9 @@ The defaults are listed in the following object:
 import {DeployIterativelyInputs} from './iterative-deploy';
 
 export const defaultInputs: Readonly<DeployIterativelyInputs> = {
+    filesPerUpload: 200,
     buildCommand: 'npm run build',
     fleekPublicDir: 'build',
-    filesPerUpload: 200,
     fleekDeployBranchName: 'FLEEK_ITERATIVE_DEPLOY',
     gitRemoteName: 'origin',
 } as const;

@@ -238,7 +238,6 @@ with commit message:
         commitMessage: newFullBuildCommitMessage,
         amend: true,
     });
-    const withLatestBuildCommitHash = await getHeadCommitHash();
     console.info(`Committed all build outputs in "${newFullBuildCommitHash}" with message
     ${newFullBuildCommitMessage}`);
 
@@ -255,7 +254,7 @@ with commit message:
         await lastPromise;
         const message = `adding built files from index "${index}" of "${
             chunkedFiles.length - 1
-        }" with "${currentFiles.length}" total files.`;
+        }" with "${currentFiles.length}" files ("${changes.length}" total files).`;
         console.info(message);
         console.info(
             `Copying "${currentFiles.length}" files to Fleek deploy dir:\n    ${currentFiles.join(
