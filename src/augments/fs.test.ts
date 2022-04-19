@@ -1,11 +1,11 @@
 import {assertNotNullish} from 'augment-vir/dist/jest-only';
 import {existsSync} from 'fs';
 import {remove} from 'fs-extra';
-import {readFile, unlink, writeFile} from 'fs/promises';
-import {relative} from 'path';
-import {directoryForFleekIterativeDeployFiles} from '../file-paths';
+import {readdir, readFile, unlink, writeFile} from 'fs/promises';
+import {join, relative} from 'path';
+import {directoryForFleekIterativeDeployFiles, specificallySizedFilesDir} from '../file-paths';
 import {createNewTestDir, createNewTestFile} from '../test/create-test-file';
-import {copyFilesToDir, removeMatchFromFile} from './fs';
+import {copyFilesToDir, partitionFileArrayByCountAndFileSize, removeMatchFromFile} from './fs';
 
 describe(copyFilesToDir.name, () => {
     it('should copy files over', async () => {
@@ -83,5 +83,51 @@ describe(removeMatchFromFile.name, () => {
 
         await remove(testFile);
         expect(existsSync(testFile)).toBe(false);
+    });
+});
+
+describe(partitionFileArrayByCountAndFileSize.name, () => {
+    it('should chunk files that are too big', async () => {
+        const specificallySizedFiles = (await readdir(specificallySizedFilesDir))
+            .sort((a, b) => {
+                const aSizeText = a.replace(/^size-/, '').replace('.txt', '');
+                const bSizeText = b.replace(/^size-/, '').replace('.txt', '');
+                const aSize = Number(aSizeText);
+                const bSize = Number(bSizeText);
+
+                if (isNaN(aSize) || isNaN(bSize)) {
+                    throw new Error(
+                        `Invalid sizes extracted from files "${a}" or "${b}": "${aSizeText}" and "${bSizeText}"`,
+                    );
+                }
+                return aSize - bSize;
+            })
+            .map((fileName) => join(specificallySizedFilesDir, fileName));
+        expect(specificallySizedFiles.length).toBe(6);
+        specificallySizedFiles.forEach((filePath) => {
+            expect(existsSync(filePath)).toBe(true);
+        });
+
+        const chunkedBySize = await partitionFileArrayByCountAndFileSize(specificallySizedFiles, {
+            maxFileChunksPerPartition: 3,
+            minFileChunkBytes: 528,
+        });
+
+        const expectArray: string[][] = [
+            [
+                'size-0.txt',
+                'size-4.txt',
+                'size-16.txt',
+            ],
+            [
+                'size-32.txt',
+                'size-128.txt',
+            ],
+            [
+                'size-1024.txt',
+            ],
+        ].map((row) => row.map((fileName) => join(specificallySizedFilesDir, fileName)));
+
+        expect(chunkedBySize).toEqual(expectArray);
     });
 });

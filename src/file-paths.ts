@@ -18,3 +18,7 @@ export const buildOutputForCopyingFrom = join(
 );
 
 ensureDirSync(directoryForFleekIterativeDeployFiles);
+
+// the following testing directories will not exit when published on npm
+const testFilesDir = join(fleekIterativeDeployRepoDir, 'test-files');
+export const specificallySizedFilesDir = join(testFilesDir, 'specifically-sized-files');

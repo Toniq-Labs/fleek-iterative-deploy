@@ -63,3 +63,48 @@ export async function removeMatchFromFile(inputs: RemoveMatchFromFileInputs): Pr
         return false;
     }
 }
+
+/**
+ * A file is considered a single "chunk" if it's size is equal to or less than (<=) the given
+ * minFileChunkSize. If a file is larger than minFileChunkSize, it takes up multiple chunks. The
+ * chunk limit for each partition of files is determined by maxFileChunksPerPartition.
+ */
+export async function partitionFileArrayByCountAndFileSize(
+    fileArray: string[],
+    options: {
+        maxFileChunksPerPartition: number;
+        minFileChunkBytes: number;
+    },
+): Promise<string[][]> {
+    const final2dArray: string[][] = [];
+    let currentFilePartition: string[] = [];
+    let currentFilePartitionChunkCount = 0;
+
+    await fileArray.reduce(async (lastPromise, filePath) => {
+        await lastPromise;
+        const fileBytes = (await stat(filePath)).size;
+        let fileChunkCount = Math.ceil(fileBytes / options.minFileChunkBytes);
+        if (fileChunkCount < 1) {
+            fileChunkCount = 1;
+        }
+
+        if (
+            // if nothing is in the file array and we're already beyond the max... we just gotta do the best we can.
+            currentFilePartitionChunkCount > 0 &&
+            currentFilePartitionChunkCount + fileChunkCount > options.maxFileChunksPerPartition
+        ) {
+            final2dArray.push(currentFilePartition);
+            currentFilePartition = [];
+            currentFilePartitionChunkCount = 0;
+        }
+
+        currentFilePartitionChunkCount += fileChunkCount;
+        currentFilePartition.push(filePath);
+    }, Promise.resolve());
+
+    if (currentFilePartition.length) {
+        final2dArray.push(currentFilePartition);
+    }
+
+    return final2dArray;
+}

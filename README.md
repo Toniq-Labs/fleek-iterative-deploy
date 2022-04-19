@@ -121,7 +121,7 @@ npx fleek-iterative-deploy
 ## Run with custom inputs
 
 ```bash
-npx fleek-iterative-deploy "<filesPerUpload>" "<buildCommand>" "<fleekPublicDir>" "<fleekDeployBranchName>" "<gitRemoteName>"
+npx fleek-iterative-deploy "<buildCommand>" "<fleekPublicDir>" "<fleekDeployBranchName>"
 ```
 
 -   **`filesPerUpload`**: this controls how many files to deploy at once.
@@ -138,11 +138,9 @@ The defaults are listed in the following object:
 import {DeployIterativelyInputs} from './iterative-deploy';
 
 export const defaultInputs: Readonly<DeployIterativelyInputs> = {
-    filesPerUpload: 200,
     buildCommand: 'npm run build',
     fleekPublicDir: 'build',
     fleekDeployBranchName: 'FLEEK_ITERATIVE_DEPLOY',
-    gitRemoteName: 'origin',
 } as const;
 ```
 
