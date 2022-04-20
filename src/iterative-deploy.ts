@@ -30,7 +30,7 @@ import {
 import {getRefBaseName} from './git/git-shared-imports';
 import {setFleekIterativeDeployGitUser} from './git/set-fleek-iterative-deploy-git-user';
 
-const fleekMaxChunksPerDeploy = 120;
+const fleekMaxChunksPerDeploy = 50;
 const fleekMaxBytesPerChunk = 1900000;
 const gitRemoteName = 'origin';
 
@@ -48,17 +48,17 @@ export async function deployIteratively({
     buildCommand,
     fleekPublicDir,
 }: DeployIterativelyInputs) {
+    const totalStartTimeMs: number = Date.now();
+
+    const triggerBranchName =
+        getRefBaseName(readEnvVar(githubRef)) ?? (await getCurrentBranchName());
+
+    if (!triggerBranchName) {
+        throw new Error(`Failed to get trigger branch name`);
+    }
+    console.info({triggerBranchName});
+
     try {
-        const totalStartTimeMs: number = Date.now();
-
-        const triggerBranchName =
-            getRefBaseName(readEnvVar(githubRef)) ?? (await getCurrentBranchName());
-
-        if (!triggerBranchName) {
-            throw new Error(`Failed to get trigger branch name`);
-        }
-        console.info({triggerBranchName});
-
         if (fleekDeployBranchName === triggerBranchName) {
             throw new Error(
                 `Trigger branch name cannot be the same as fleekDeployBranchName: "${fleekDeployBranchName}"`,
@@ -315,5 +315,6 @@ with commit message:
     } catch (error) {
         throw error;
     } finally {
+        await hardResetCurrentBranchTo(triggerBranchName, {local: true});
     }
 }
