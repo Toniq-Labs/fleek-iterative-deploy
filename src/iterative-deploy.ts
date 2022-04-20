@@ -30,7 +30,7 @@ import {
 import {getRefBaseName} from './git/git-shared-imports';
 import {setFleekIterativeDeployGitUser} from './git/set-fleek-iterative-deploy-git-user';
 
-const fleekMaxChunksPerDeploy = 200;
+const fleekMaxChunksPerDeploy = 180;
 const fleekMaxBytesPerChunk = 1900000;
 const gitRemoteName = 'origin';
 
