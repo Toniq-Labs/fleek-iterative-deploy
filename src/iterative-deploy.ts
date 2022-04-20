@@ -153,14 +153,6 @@ with message:
             )}"`,
         );
 
-        console.log('what is going on??');
-        await pushBranch({
-            branchName: fleekDeployBranchName,
-            remoteName: gitRemoteName,
-            force: true,
-        });
-        return;
-
         await lastFullBuildCommits
             // reverse so we apply the commits in the order they were originally applied
             .reverse()
@@ -193,6 +185,13 @@ with commit message:
                     });
                 }
             }, Promise.resolve());
+        console.log('what is going on??');
+        await pushBranch({
+            branchName: fleekDeployBranchName,
+            remoteName: gitRemoteName,
+            force: true,
+        });
+        return;
 
         console.info(`Running build command: ${buildCommand}`);
         const buildCommandOutput = await runShellCommand(buildCommand, {
