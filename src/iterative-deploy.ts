@@ -94,7 +94,10 @@ with message:
                     .join('\n    ')}`,
             );
             console.info(`hard resetting branch...`);
-            await hardResetCurrentBranchTo(triggerBranchName, {local: true});
+            await hardResetCurrentBranchTo(triggerBranchName, {
+                remote: true,
+                remoteName: gitRemoteName,
+            });
             const newCommitHash = await getHeadCommitHash();
             console.info(`Now on "${newCommitHash}"`);
             if (triggerBranchHeadHash !== newCommitHash) {
@@ -111,19 +114,15 @@ with message:
         });
         const buildOutputBranchHeadHash = await getHeadCommitHash();
         const buildOutputBranchHeadMessage = await getCommitMessage(buildOutputBranchHeadHash);
-        console.info(`Now on branch:
-    ${await getCurrentBranchName()}
-commit:
-    "${buildOutputBranchHeadHash}"
-message:
-    "${buildOutputBranchHeadMessage}"`);
+        console.info(
+            `Now on branch:\n    ${await getCurrentBranchName()}\ncommit:\n    "${buildOutputBranchHeadHash}"\nmessage:\n    "${buildOutputBranchHeadMessage}"`,
+        );
 
         const previousBuildCommits = await getCommitDifference({
             notOnThisBranch: triggerBranchName,
             onThisBranch: fleekDeployBranchName,
         });
-        console.info(`previous build commits:
-    ${previousBuildCommits.join('\n    ')}`);
+        console.info(`previous build commits:\n    ${previousBuildCommits.join('\n    ')}`);
 
         const previousBuildCommitsWithMessages = await Promise.all(
             previousBuildCommits.map(async (commitHash) => {
@@ -146,6 +145,12 @@ message:
             remote: true,
             remoteName: gitRemoteName,
         });
+        const afterDeployBranchResetCommitHash = await getHeadCommitHash();
+        console.info(
+            `Now on "${afterDeployBranchResetCommitHash}", "${await getCommitMessage(
+                afterDeployBranchResetCommitHash,
+            )}"`,
+        );
 
         await lastFullBuildCommits
             // reverse so we apply the commits in the order they were originally applied
@@ -227,7 +232,8 @@ with commit message:
         console.info(`"${changes.length}" changed files detected:\n    ${changes.join('\n    ')}`);
 
         if (changes.length === 0) {
-            throw new Error(`No changed files to deploy were detected!`);
+            console.info(`No changed files to deploy were detected!`);
+            return;
         }
 
         console.info(`un-git-ignoring "${fleekPublicDir}"`);
@@ -308,6 +314,5 @@ with commit message:
     } catch (error) {
         throw error;
     } finally {
-        await hardResetCurrentBranchTo(triggerBranchName, {local: true});
     }
 }
