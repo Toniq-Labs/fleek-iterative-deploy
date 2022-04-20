@@ -85,6 +85,7 @@ with message:
             );
         }
 
+        // this removes stuff like yarn.lock getting updated after a workflow's npm install step
         const preStartChanges = await getChanges();
 
         if (preStartChanges.length) {
@@ -151,6 +152,14 @@ with message:
                 afterDeployBranchResetCommitHash,
             )}"`,
         );
+
+        console.log('what is going on??');
+        await pushBranch({
+            branchName: fleekDeployBranchName,
+            remoteName: gitRemoteName,
+            force: true,
+        });
+        return;
 
         await lastFullBuildCommits
             // reverse so we apply the commits in the order they were originally applied
@@ -233,6 +242,11 @@ with commit message:
 
         if (changes.length === 0) {
             console.info(`No changed files to deploy were detected!`);
+            await pushBranch({
+                branchName: fleekDeployBranchName,
+                remoteName: gitRemoteName,
+                force: true,
+            });
             return;
         }
 
