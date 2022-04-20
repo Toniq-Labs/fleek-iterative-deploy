@@ -4,6 +4,8 @@ Package that will iteratively deploy a site to [Fleek](https://fleek.co) by grad
 
 Requires Node.js 16.
 
+_Bonus points_: you won't use up your Fleek computation minutes because GitHub will be running your build command!
+
 # What this solves
 
 Fleek will easily fail to deploy to the IC if your site has too many files. Typically this is worked-around by manually deploying files iteratively. This script does it automatically and seamlessly!

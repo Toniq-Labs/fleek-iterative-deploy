@@ -57,7 +57,7 @@ async function main() {
         console.info(JSON.stringify(sites, null, 4));
         console.info(afterSiteList);
     } else {
-        await deployIteratively(deployInputs);
+        await deployIteratively(process.cwd(), deployInputs);
     }
 }
 

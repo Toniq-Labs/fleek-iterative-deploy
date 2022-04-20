@@ -10,11 +10,15 @@ export const readmeForIterationBranchFile = join(
     'iteration-branch-readme.md',
 );
 
-export const directoryForFleekIterativeDeployFiles = join(process.cwd(), '.fleek-iterative-deploy');
-
-export const buildOutputForCopyingFrom = join(
-    directoryForFleekIterativeDeployFiles,
+const fleekIterativeDeployDirName = '.fleek-iterative-deploy';
+export const fleekIterativeDeployRelativeDirPath = join(
+    fleekIterativeDeployDirName,
     'build-output',
+);
+
+export const directoryForFleekIterativeDeployFiles = join(
+    process.cwd(),
+    fleekIterativeDeployDirName,
 );
 
 ensureDirSync(directoryForFleekIterativeDeployFiles);
@@ -22,3 +26,5 @@ ensureDirSync(directoryForFleekIterativeDeployFiles);
 // the following testing directories will not exit when published on npm
 const testFilesDir = join(fleekIterativeDeployRepoDir, 'test-files');
 export const specificallySizedFilesDir = join(testFilesDir, 'specifically-sized-files');
+
+export const testIterativeDeployDir = join(testFilesDir, 'iterative-deploy-test-repo');

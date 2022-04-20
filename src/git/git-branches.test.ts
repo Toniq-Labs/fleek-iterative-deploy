@@ -36,11 +36,15 @@ describe(listBranchNames.name, () => {
         expect(branchNames.includes('main')).toBe(true);
     });
 
-    gitIt('should be able to list remote branches', async () => {
-        const remoteBranchNames = await listBranchNames({remote: true, remoteName: 'origin'});
-        expect(remoteBranchNames.length).toBeGreaterThan(0);
-        expect(remoteBranchNames.includes('origin/main')).toBe(true);
-    });
+    gitIt(
+        'should be able to list remote branches',
+        async () => {
+            const remoteBranchNames = await listBranchNames({remote: true, remoteName: 'origin'});
+            expect(remoteBranchNames.length).toBeGreaterThan(0);
+            expect(remoteBranchNames.includes('origin/main')).toBe(true);
+        },
+        60000,
+    );
 });
 
 describe(getCurrentBranchName.name, () => {

@@ -1,4 +1,10 @@
-import {isObject, isTruthy, RequiredAndNotNull, typedHasOwnProperty} from 'augment-vir';
+import {
+    extractErrorMessage,
+    isObject,
+    isTruthy,
+    RequiredAndNotNull,
+    typedHasOwnProperty,
+} from 'augment-vir';
 import {runShellCommand} from 'augment-vir/dist/node-only';
 import {safeInterpolate} from '../augments/shell';
 import {getRefBaseName} from './git-shared-imports';
@@ -86,9 +92,19 @@ export type DefinitelyCheckoutBranchInputs = {
 export async function definitelyCheckoutBranch(
     inputs: DefinitelyCheckoutBranchInputs,
 ): Promise<void> {
-    const onRemote: boolean = inputs.allowFromRemote
-        ? await fetchRemoteRef({refName: inputs.branchName, remoteName: inputs.remoteName})
-        : false;
+    let onRemote: boolean = false;
+    try {
+        onRemote = inputs.allowFromRemote
+            ? await fetchRemoteRef({refName: inputs.branchName, remoteName: inputs.remoteName})
+            : false;
+    } catch (error) {
+        console.error(
+            `failed to fetch remote branch for "${inputs.branchName}": ${extractErrorMessage(
+                error,
+            )}`,
+        );
+        console.info(`Proceeding with local branch for "${inputs.branchName}"...`);
+    }
 
     if (!(await doesBranchExist(inputs.branchName)) && !onRemote) {
         await createBranch(inputs.branchName);
