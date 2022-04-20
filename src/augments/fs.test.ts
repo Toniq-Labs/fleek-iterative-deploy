@@ -5,7 +5,7 @@ import {readdir, readFile, unlink, writeFile} from 'fs/promises';
 import {join, relative} from 'path';
 import {directoryForFleekIterativeDeployFiles, specificallySizedFilesDir} from '../file-paths';
 import {createNewTestDir, createNewTestFile} from '../test/create-test-file';
-import {copyFilesToDir, partitionFileArrayByCountAndFileSize, removeMatchFromFile} from './fs';
+import {copyFilesToDir, partitionFilesBySize, removeMatchFromFile} from './fs';
 
 describe(copyFilesToDir.name, () => {
     it('should copy files over', async () => {
@@ -86,7 +86,7 @@ describe(removeMatchFromFile.name, () => {
     });
 });
 
-describe(partitionFileArrayByCountAndFileSize.name, () => {
+describe(partitionFilesBySize.name, () => {
     it('should chunk files that are too big', async () => {
         const specificallySizedFiles = (await readdir(specificallySizedFilesDir))
             .sort((a, b) => {
@@ -108,19 +108,16 @@ describe(partitionFileArrayByCountAndFileSize.name, () => {
             expect(existsSync(filePath)).toBe(true);
         });
 
-        const chunkedBySize = await partitionFileArrayByCountAndFileSize(specificallySizedFiles, {
-            maxFileChunksPerPartition: 3,
-            minFileChunkBytes: 528,
-        });
+        const chunkedBySize = await partitionFilesBySize(specificallySizedFiles, 120);
 
         const expectArray: string[][] = [
             [
                 'size-0.txt',
                 'size-4.txt',
                 'size-16.txt',
+                'size-32.txt',
             ],
             [
-                'size-32.txt',
                 'size-128.txt',
             ],
             [

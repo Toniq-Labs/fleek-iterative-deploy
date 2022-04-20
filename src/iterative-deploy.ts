@@ -2,11 +2,7 @@ import {runShellCommand} from 'augment-vir/dist/node-only';
 import {copy, ensureDir, remove} from 'fs-extra';
 import {readdir} from 'fs/promises';
 import {join, relative} from 'path';
-import {
-    copyFilesToDir,
-    partitionFileArrayByCountAndFileSize,
-    removeMatchFromFile,
-} from './augments/fs';
+import {copyFilesToDir, partitionFilesBySize, removeMatchFromFile} from './augments/fs';
 import {githubRef, readEnvVar} from './env';
 import {buildOutputForCopyingFrom, readmeForIterationBranchFile} from './file-paths';
 import {waitUntilAllDeploysAreFinished, waitUntilFleekDeployStarted} from './fleek';
@@ -30,8 +26,8 @@ import {
 import {getRefBaseName} from './git/git-shared-imports';
 import {setFleekIterativeDeployGitUser} from './git/set-fleek-iterative-deploy-git-user';
 
-const fleekMaxChunksPerDeploy = 50;
-const fleekMaxBytesPerChunk = 1900000;
+// 30 MB = 30 * 1024 * 1024 = 31,457,280
+const totalByteSizePerDeploy = 31_457_280;
 const gitRemoteName = 'origin';
 
 export type DeployIterativelyInputs = {
@@ -257,12 +253,9 @@ with commit message:
         console.info(`Committed all build outputs in "${newFullBuildCommitHash}" with message
     ${newFullBuildCommitMessage}`);
 
-        const chunkedFiles: Readonly<string[][]> = await partitionFileArrayByCountAndFileSize(
+        const chunkedFiles: Readonly<string[][]> = await partitionFilesBySize(
             changes.map((changedFile) => join(process.cwd(), changedFile)),
-            {
-                maxFileChunksPerPartition: fleekMaxChunksPerDeploy,
-                minFileChunkBytes: fleekMaxBytesPerChunk,
-            },
+            totalByteSizePerDeploy,
         );
         console.info(`Changed files separated into "${chunkedFiles.length}" chunks.`);
         console.info(

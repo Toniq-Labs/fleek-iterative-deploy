@@ -69,36 +69,29 @@ export async function removeMatchFromFile(inputs: RemoveMatchFromFileInputs): Pr
  * minFileChunkSize. If a file is larger than minFileChunkSize, it takes up multiple chunks. The
  * chunk limit for each partition of files is determined by maxFileChunksPerPartition.
  */
-export async function partitionFileArrayByCountAndFileSize(
+export async function partitionFilesBySize(
     fileArray: string[],
-    options: {
-        maxFileChunksPerPartition: number;
-        minFileChunkBytes: number;
-    },
+    maxPartitionSize: number,
 ): Promise<string[][]> {
     const final2dArray: string[][] = [];
     let currentFilePartition: string[] = [];
-    let currentFilePartitionChunkCount = 0;
+    let currentPartitionSize = 0;
 
     await fileArray.reduce(async (lastPromise, filePath) => {
         await lastPromise;
-        const fileBytes = (await stat(filePath)).size;
-        let fileChunkCount = Math.ceil(fileBytes / options.minFileChunkBytes);
-        if (fileChunkCount < 1) {
-            fileChunkCount = 1;
-        }
+        const fileSizeBytes = (await stat(filePath)).size;
 
         if (
             // if nothing is in the file array and we're already beyond the max... we just gotta do the best we can.
-            currentFilePartitionChunkCount > 0 &&
-            currentFilePartitionChunkCount + fileChunkCount > options.maxFileChunksPerPartition
+            currentPartitionSize > 0 &&
+            currentPartitionSize + fileSizeBytes > maxPartitionSize
         ) {
             final2dArray.push(currentFilePartition);
             currentFilePartition = [];
-            currentFilePartitionChunkCount = 0;
+            currentPartitionSize = 0;
         }
 
-        currentFilePartitionChunkCount += fileChunkCount;
+        currentPartitionSize += fileSizeBytes;
         currentFilePartition.push(filePath);
     }, Promise.resolve());
 
