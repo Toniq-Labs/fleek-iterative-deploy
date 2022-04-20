@@ -159,10 +159,9 @@ with message:
             // use reduce here so that commits don't run in parallel
             .reduce(async (lastPromise, buildCommit, index) => {
                 await lastPromise;
-                console.info(`cherry-picking build commit:
-    ${buildCommit.hash}
-with commit message:
-    ${buildCommit.message}`);
+                console.info(
+                    `cherry-picking build commit:\n    ${buildCommit.hash}\nwith commit message:\n    ${buildCommit.message}`,
+                );
                 const cherryPickExtraOptions =
                     index === 0
                         ? {}
@@ -185,13 +184,6 @@ with commit message:
                     });
                 }
             }, Promise.resolve());
-        console.log('what is going on??');
-        await pushBranch({
-            branchName: fleekDeployBranchName,
-            remoteName: gitRemoteName,
-            force: true,
-        });
-        return;
 
         console.info(`Running build command: ${buildCommand}`);
         const buildCommandOutput = await runShellCommand(buildCommand, {
@@ -269,8 +261,9 @@ with commit message:
             commitMessage: newFullBuildCommitMessage,
             amend: true,
         });
-        console.info(`Committed all build outputs in "${newFullBuildCommitHash}" with message
-    ${newFullBuildCommitMessage}`);
+        console.info(
+            `Committed all build outputs in "${newFullBuildCommitHash}" with message\n    ${newFullBuildCommitMessage}`,
+        );
 
         const chunkedFiles: Readonly<string[][]> = await partitionFilesBySize(
             changes.map((changedFile) => join(process.cwd(), changedFile)),
@@ -280,6 +273,14 @@ with commit message:
         console.info(
             `Starting chunk copying with keep structure dir of "${buildOutputForCopyingFrom}"`,
         );
+
+        console.log('what is going on??');
+        await pushBranch({
+            branchName: fleekDeployBranchName,
+            remoteName: gitRemoteName,
+            force: true,
+        });
+        return;
 
         await chunkedFiles.reduce(async (lastPromise, currentFiles, index) => {
             await lastPromise;
