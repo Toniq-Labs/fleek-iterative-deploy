@@ -4,7 +4,7 @@ Package that will iteratively deploy a site to [Fleek](https://fleek.co) by grad
 
 Requires Node.js 16.
 
-_Bonus points_: you won't use up your Fleek computation minutes because GitHub will be running your build command!
+_Bonus points_: you won't use up your Fleek computation minutes because GitHub (or whatever system you run this package with) will be running your build command!
 
 # What this solves
 
@@ -83,7 +83,7 @@ Add a GitHub Actions workflow that triggers when you push to `main` (or `master`
 Most importantly your workflow must:
 
 1. run on push
-2. set env variables so that this package can access them.
+2. set env variables so that this package can access them (see the example above on how to do that, it's the part under `env:`).
 3. run `npx fleek-iterative-deploy`
 
 ## 6. Customize inputs
@@ -101,7 +101,7 @@ With everything setup in your GitHub action, simply push to your `main` branch a
 I haven't found a good way to find Fleek site ids, so here's how to get a list. It'll simply log the list of sites given your env Fleek API key and team id variables.
 
 ```bash
-npx fleek-iterative-deploy --sites
+export FLEEK_API_KEY=insertYourKeyHere; export FLEEK_TEAM_ID=insertYourTeamIdHere; npx fleek-iterative-deploy --sites
 ```
 
 ## Dry run
@@ -126,11 +126,9 @@ npx fleek-iterative-deploy
 npx fleek-iterative-deploy "<buildCommand>" "<fleekPublicDir>" "<fleekDeployBranchName>"
 ```
 
--   **`filesPerUpload`**: this controls how many files to deploy at once.
 -   **`buildCommand`**: this is the bash command which `fleek-iterative-deploy` will run to build your website.
 -   **`fleekPublicDir`**: this is the directory which Fleek is configured to deploy files from; the `publicDir` property in a Fleek config file.
 -   **`fleekDeployBranchName`**: this is the branch which Fleek will deploy from. This should _not_ be the same as the branch that triggers your GitHub Action.
--   **`gitRemoteName`**: this is the name of your git remote when the action is running. This will likely never need to be changed.
 
 The defaults are listed in the following object:
 
@@ -148,7 +146,11 @@ export const defaultInputs: Readonly<DeployIterativelyInputs> = {
 
 ## Skipping deploy
 
-To skip a deploy, add `nobuild!` or `!nobuild` to your latest commit message before pushing to your branch. This will abort the deploy before it starts!
+To skip a deploy, add `nobuild!` or `!nobuild` to your latest commit message before pushing to your branch. This will abort the deploy before it starts.
+
+## Forcing a deploy
+
+To force a deploy, add `forcefleekdeploy!` or `!forcefleekdeploy` to your latest commit message before pushing. This will skip checking if any changes have been made since the last deploy, and just let Fleek handle all of that.
 
 # Example
 

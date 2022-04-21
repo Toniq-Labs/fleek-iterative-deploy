@@ -3,6 +3,7 @@
     "words": [
         "commitish",
         "dryrun",
+        "forcefleekdeploy",
         "fleekhq",
         "nobuild",
         "refname"

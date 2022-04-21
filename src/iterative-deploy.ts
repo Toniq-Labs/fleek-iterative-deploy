@@ -38,6 +38,7 @@ export type DeployIterativelyInputs = {
 
 const allBuildOutputCommitMessage = 'add all build output';
 const noBuildTrigger = /nobuild!|!nobuild/;
+const forceDeployTrigger = /forcefleekdeploy!|!forcefleekdeploy/;
 
 export async function setupForIterativeDeploy(
     cwd: string,
