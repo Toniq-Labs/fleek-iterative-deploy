@@ -1,3 +1,4 @@
+import {interpolationSafeWindowsPath} from 'augment-vir/dist/node-only';
 import {existsSync} from 'fs';
 import {remove} from 'fs-extra';
 import {readdir} from 'fs/promises';
@@ -32,7 +33,9 @@ describe(setupForIterativeDeploy.name, () => {
             }
 
             const deployIterativelyInputs: DeployIterativelyInputs = {
-                buildCommand: `ts-node ${buildFileToRun} ${randomlyGeneratedFileCount} 50`,
+                buildCommand: `ts-node ${interpolationSafeWindowsPath(
+                    buildFileToRun,
+                )} ${randomlyGeneratedFileCount} 50`,
                 fleekDeployBranchName: defaultInputs.fleekDeployBranchName,
                 fleekPublicDir: deployRelativeDirName,
             };
