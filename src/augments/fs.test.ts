@@ -3,9 +3,18 @@ import {existsSync} from 'fs';
 import {remove} from 'fs-extra';
 import {readdir, readFile, unlink, writeFile} from 'fs/promises';
 import {join, relative} from 'path';
-import {directoryForFleekIterativeDeployFiles, specificallySizedFilesDir} from '../file-paths';
+import {
+    directoryForFleekIterativeDeployFiles,
+    recursiveFileReadDir,
+    specificallySizedFilesDir,
+} from '../file-paths';
 import {createNewTestDir, createNewTestFile} from '../test/create-test-file';
-import {copyFilesToDir, partitionFilesBySize, removeMatchFromFile} from './fs';
+import {
+    copyFilesToDir,
+    partitionFilesBySize,
+    readDirPathsRecursive,
+    removeMatchFromFile,
+} from './fs';
 
 describe(copyFilesToDir.name, () => {
     it('should copy files over', async () => {
@@ -126,5 +135,19 @@ describe(partitionFilesBySize.name, () => {
         ].map((row) => row.map((fileName) => join(specificallySizedFilesDir, fileName)));
 
         expect(chunkedBySize).toEqual(expectArray);
+    });
+});
+
+describe(readDirPathsRecursive.name, () => {
+    it('should read files in a directory recursively', async () => {
+        const allFiles = (await readDirPathsRecursive(recursiveFileReadDir)).sort();
+        expect(allFiles).toEqual([
+            'a-file.txt',
+            'b-file.txt',
+            'inner-dir/a-file.txt',
+            'inner-dir/b-file.txt',
+            'inner-dir/double-inner-dir/a-file.txt',
+            'inner-dir/double-inner-dir/b-file.txt',
+        ]);
     });
 });

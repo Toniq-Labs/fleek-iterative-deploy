@@ -2,7 +2,12 @@ import {runShellCommand} from 'augment-vir/dist/node-only';
 import {copy, ensureDir, remove} from 'fs-extra';
 import {readdir} from 'fs/promises';
 import {join, relative} from 'path';
-import {copyFilesToDir, partitionFilesBySize, removeMatchFromFile} from './augments/fs';
+import {
+    copyFilesToDir,
+    partitionFilesBySize,
+    readDirPathsRecursive,
+    removeMatchFromFile,
+} from './augments/fs';
 import {githubRef, readEnvVar} from './env';
 import {fleekIterativeDeployRelativeDirPath, readmeForIterationBranchFile} from './file-paths';
 import {waitUntilAllDeploysAreFinished, waitUntilFleekDeployStarted} from './fleek';
@@ -44,6 +49,7 @@ export async function setupForIterativeDeploy(
     cwd: string,
     {fleekDeployBranchName, buildCommand, fleekPublicDir}: DeployIterativelyInputs,
 ): Promise<Readonly<{chunkedFiles: Readonly<string[][]>; totalChanges: number}>> {
+    // get and verify branch name
     const triggerBranchName =
         getRefBaseName(readEnvVar(githubRef)) || (await getCurrentBranchName());
 
@@ -79,6 +85,9 @@ export async function setupForIterativeDeploy(
         `on commit:\n    ${triggerBranchHeadHash}\nwith message:\n    ${triggerBranchHeadMessage}`,
     );
 
+    const skipChangesCheck: boolean = !!triggerBranchHeadMessage
+        .toLocaleLowerCase()
+        .match(forceDeployTrigger);
     if (triggerBranchHeadMessage.toLowerCase().match(noBuildTrigger)) {
         throw new Error(
             `Aborting build due to "${noBuildTrigger}" match in HEAD commit message: "${triggerBranchHeadMessage}"`,
@@ -224,10 +233,14 @@ export async function setupForIterativeDeploy(
 
     console.info(`Getting changes in "${relativeCopyFromDir}"`);
     await stageEverything();
-    const changes: Readonly<string[]> = await getChangedCurrentFiles(relativeCopyFromDir);
-    console.info(`"${changes.length}" changed files detected:\n    ${changes.join('\n    ')}`);
+    const filesToMove: Readonly<string[]> = skipChangesCheck
+        ? await readDirPathsRecursive(relativeCopyFromDir)
+        : await getChangedCurrentFiles(relativeCopyFromDir);
+    console.info(
+        `"${filesToMove.length}" changed files detected:\n    ${filesToMove.join('\n    ')}`,
+    );
 
-    if (changes.length === 0) {
+    if (!skipChangesCheck && filesToMove.length === 0) {
         console.info(`No changed files to deploy were detected!`);
         await pushBranch({
             branchName: fleekDeployBranchName,
@@ -267,14 +280,14 @@ export async function setupForIterativeDeploy(
     console.info('Chunking changed files...');
 
     const chunkedFiles: Readonly<string[][]> = await partitionFilesBySize(
-        changes.map((changedFile) => join(process.cwd(), changedFile)),
+        filesToMove.map((changedFile) => join(process.cwd(), changedFile)),
         totalByteSizePerDeploy,
     );
     console.info(`Changed files separated into "${chunkedFiles.length}" chunks.`);
 
     return {
         chunkedFiles,
-        totalChanges: changes.length,
+        totalChanges: filesToMove.length,
     };
 }
 

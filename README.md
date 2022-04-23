@@ -150,7 +150,7 @@ To skip a deploy, add `nobuild!` or `!nobuild` to your latest commit message bef
 
 ## Forcing a deploy
 
-To force a deploy, add `forcefleekdeploy!` or `!forcefleekdeploy` to your latest commit message before pushing. This will skip checking if any changes have been made since the last deploy, and just let Fleek handle all of that.
+To force a deploy, add `forcefleekdeploy!` or `!forcefleekdeploy` to your latest commit message before pushing. This will skip checking if any changes have been made since the last deploy, and just try to deploy everything.
 
 # Example
 

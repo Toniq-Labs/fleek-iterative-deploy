@@ -1,6 +1,6 @@
 import {isTruthy} from 'augment-vir/dist';
 import {copy, ensureDir} from 'fs-extra';
-import {readFile, stat, writeFile} from 'fs/promises';
+import {readdir, readFile, stat, writeFile} from 'fs/promises';
 import {basename, dirname, join, relative} from 'path';
 
 export async function copyFilesToDir({
@@ -100,4 +100,27 @@ export async function partitionFilesBySize(
     }
 
     return final2dArray;
+}
+
+async function internalReadDirPathsRecursive(dirPath: string, basePath: string): Promise<string[]> {
+    const dirContents = await readdir(dirPath);
+    const recursiveContents: string[] = (
+        await Promise.all(
+            dirContents.map(async (fileName): Promise<string | string[]> => {
+                const filePath = join(dirPath, fileName);
+                if ((await stat(filePath)).isDirectory()) {
+                    return internalReadDirPathsRecursive(filePath, basePath);
+                } else {
+                    return relative(basePath, filePath);
+                }
+            }),
+        )
+    ).flat();
+
+    return recursiveContents;
+}
+
+/** Gets all files within a directory and its subdirectories, recursively. */
+export async function readDirPathsRecursive(dirPath: string): Promise<string[]> {
+    return await internalReadDirPathsRecursive(dirPath, dirPath);
 }

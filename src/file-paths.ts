@@ -28,3 +28,4 @@ const testFilesDir = join(fleekIterativeDeployRepoDir, 'test-files');
 export const specificallySizedFilesDir = join(testFilesDir, 'specifically-sized-files');
 
 export const testIterativeDeployDir = join(testFilesDir, 'iterative-deploy-test-repo');
+export const recursiveFileReadDir = join(testFilesDir, 'recursive-file-reading');
