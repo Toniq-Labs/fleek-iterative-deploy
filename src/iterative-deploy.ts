@@ -19,7 +19,7 @@ import {
     pushBranch,
     updateAllFromRemote,
 } from './git/git-branches';
-import {getChangedCurrentFiles, getChanges} from './git/git-changes';
+import {getChangedCurrentFiles} from './git/git-changes';
 import {
     cherryPickCommit,
     commitEverythingToCurrentBranch,
@@ -61,9 +61,12 @@ export async function setupForIterativeDeploy(
         abortRef: string;
     }>
 > {
+    await logLastNCommits(2);
+    const gitHubRef = getRefBaseName(readEnvVar(githubRef));
+    const currentBranchName = await getCurrentBranchName();
+    console.info({gitHubRef, currentBranchName});
     // get and verify branch name
-    const triggerBranchName =
-        getRefBaseName(readEnvVar(githubRef)) || (await getCurrentBranchName());
+    const triggerBranchName = gitHubRef || currentBranchName;
 
     if (!triggerBranchName) {
         throw new Error(`Failed to get trigger branch name`);
@@ -77,17 +80,23 @@ export async function setupForIterativeDeploy(
 
     const fullFleekDeployDirPath = join(cwd, fleekPublicDir);
 
+    await logLastNCommits(2);
     await setFleekIterativeDeployGitUser();
+    await logLastNCommits(2);
 
     try {
+        await logLastNCommits(2);
         await updateAllFromRemote();
+        await logLastNCommits(2);
     } catch (error) {
         console.error(error);
         console.info(`\nFailed to update from remote. Proceeding anyway\n`);
     }
 
     if ((await getCurrentBranchName()) !== triggerBranchName) {
-        console.info(`Checking out triggerBranchName: "${triggerBranchName}"`);
+        console.info(
+            `Not on trigger triggerBranchName, checking out triggerBranchName: "${triggerBranchName}"`,
+        );
         await checkoutBranch(triggerBranchName);
     }
 
@@ -106,26 +115,16 @@ export async function setupForIterativeDeploy(
         );
     }
 
-    // this removes stuff like yarn.lock getting updated after a workflow's npm install step
-    const preStartChanges = await getChanges();
-
-    if (preStartChanges.length) {
-        console.info(
-            `Changes detected (from npm install maybe?):\n    ${preStartChanges
-                .map((change) => change.fullLine)
-                .join('\n    ')}`,
-        );
-        console.info(`hard resetting branch...`);
-        await hardResetCurrentBranchTo(triggerBranchName, {
-            remote: true,
-            remoteName: gitRemoteName,
-        });
-        const newCommitHash = await getHeadCommitHash();
-        console.info(`Now on "${newCommitHash}"`);
-        if (triggerBranchHeadHash !== newCommitHash) {
-            console.info({triggerBranchHeadHash, newCommitHash});
-            throw new Error(`HEAD hash changed after resetting to the same branch we were on.`);
-        }
+    console.info(`hard resetting branch to "${triggerBranchName}"...`);
+    await logLastNCommits(2);
+    await hardResetCurrentBranchTo(triggerBranchName, {
+        local: true,
+    });
+    const newCommitHash = await getHeadCommitHash();
+    console.info(`Now on "${newCommitHash}"`);
+    if (triggerBranchHeadHash !== newCommitHash) {
+        console.info({triggerBranchHeadHash, newCommitHash});
+        throw new Error(`HEAD hash changed after resetting to the same branch we were on.`);
     }
 
     await logLastNCommits(2);
@@ -171,8 +170,7 @@ export async function setupForIterativeDeploy(
 
     await logLastNCommits(2);
     await hardResetCurrentBranchTo(triggerBranchName, {
-        remote: true,
-        remoteName: gitRemoteName,
+        local: true,
     });
     await logLastNCommits(2);
     const afterDeployBranchResetCommitHash = await getHeadCommitHash();
@@ -421,7 +419,9 @@ export async function deployIteratively(cwd: string, inputs: DeployIterativelyIn
                     inputs.fleekDeployBranchName
                 }" to previous ref: "${abortRef}", "${await getCommitMessage(abortRef)}"`,
             );
-            await hardResetCurrentBranchTo(abortRef, {local: true});
+            await hardResetCurrentBranchTo(abortRef, {
+                local: true,
+            });
             await pushBranch({
                 branchName: inputs.fleekDeployBranchName,
                 remoteName: gitRemoteName,
