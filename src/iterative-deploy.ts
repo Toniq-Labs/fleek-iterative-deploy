@@ -234,14 +234,41 @@ export async function setupForIterativeDeploy(
 
     console.info(`Getting changes in "${relativeCopyFromDir}"`);
     await stageEverything();
-    const filesToMove: Readonly<string[]> = skipChangesCheck
-        ? await readDirPathsRecursive(relativeCopyFromDir)
+    const allBuildFiles = (await readDirPathsRecursive(relativeCopyFromDir)).map((fileName) =>
+        join(relativeCopyFromDir, fileName),
+    );
+    const changedFiles: Readonly<string[]> = skipChangesCheck
+        ? allBuildFiles
         : await getChangedCurrentFiles(relativeCopyFromDir);
     console.info(
-        `"${filesToMove.length}" changed files detected:\n    ${filesToMove.join('\n    ')}`,
+        `"${changedFiles.length}" changed files detected:\n    ${changedFiles.join('\n    ')}`,
     );
 
-    if (!skipChangesCheck && filesToMove.length === 0) {
+    console.log({allBuildFiles, changedFiles});
+
+    // these files will not be copied iteratively, so that Fleek keeps them in the output
+    const filesNotChanged = skipChangesCheck
+        ? []
+        : allBuildFiles.filter((allBuildFile) => {
+              return !changedFiles.includes(allBuildFile);
+          });
+
+    if (filesNotChanged.length) {
+        console.info(
+            `"${filesNotChanged.length}" files were not changed. Copying them over now so Fleek will keep them in the deploy...`,
+        );
+
+        await copyFilesToDir({
+            copyToDir: fullFleekDeployDirPath,
+            files: filesNotChanged,
+            keepStructureFromDir: buildOutputForCopyingFrom,
+        });
+        console.info(`Unchanged files all copied over.`);
+    } else {
+        console.info(`All files are new, not copying over any initial files.`);
+    }
+
+    if (!skipChangesCheck && changedFiles.length === 0) {
         console.info(`No changed files to deploy were detected!`);
         await pushBranch({
             branchName: fleekDeployBranchName,
@@ -282,14 +309,14 @@ export async function setupForIterativeDeploy(
     console.info('Chunking changed files...');
 
     const chunkedFiles: Readonly<string[][]> = await partitionFilesBySize(
-        filesToMove.map((changedFile) => join(process.cwd(), changedFile)),
+        changedFiles.map((changedFile) => join(process.cwd(), changedFile)),
         totalByteSizePerDeploy,
     );
     console.info(`Changed files separated into "${chunkedFiles.length}" chunks.`);
 
     return {
         chunkedFiles,
-        totalChanges: filesToMove.length,
+        totalChanges: changedFiles.length,
     };
 }
 

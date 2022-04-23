@@ -20,7 +20,9 @@ export async function copyFilesToDir({
                 const relativeToStructureDir = relative(keepStructureFromDir, filePath);
 
                 if (relativeToStructureDir.startsWith('..')) {
-                    throw new Error(`File is outside of keepStructureFromDir: "${filePath}"`);
+                    throw new Error(
+                        `File is outside of keepStructureFromDir ("${keepStructureFromDir}"): "${filePath}"`,
+                    );
                 }
 
                 if (
