@@ -90,10 +90,6 @@ export async function getCommitDifference(inputs: GetCommitDifferenceInputs): Pr
         inputs.notOnThisBranch,
     )} --pretty=format:"%H"`;
 
-    console.log(`hash of ${inputs.onThisBranch}: ${await getRefHash(inputs.onThisBranch)}`);
-    console.log(`hash of ${inputs.notOnThisBranch}: ${await getRefHash(inputs.notOnThisBranch)}`);
-    console.log(commandString);
-
     const commandResult = await runShellCommand(commandString, {rejectOnError: true});
 
     return commandResult.stdout

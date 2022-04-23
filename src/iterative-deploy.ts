@@ -244,8 +244,6 @@ export async function setupForIterativeDeploy(
         `"${changedFiles.length}" changed files detected:\n    ${changedFiles.join('\n    ')}`,
     );
 
-    console.log({allBuildFiles, changedFiles});
-
     // these files will not be copied iteratively, so that Fleek keeps them in the output
     const filesNotChanged = skipChangesCheck
         ? []
