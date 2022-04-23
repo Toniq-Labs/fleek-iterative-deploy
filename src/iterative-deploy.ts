@@ -1,4 +1,4 @@
-import {runShellCommand} from 'augment-vir/dist/node-only';
+import {runShellCommand, toPosixPath} from 'augment-vir/dist/node-only';
 import {copy, ensureDir, remove} from 'fs-extra';
 import {readdir} from 'fs/promises';
 import {join, relative} from 'path';
@@ -234,21 +234,23 @@ export async function setupForIterativeDeploy(
 
     console.info(`Getting changes in "${relativeCopyFromDir}"`);
     await stageEverything();
-    const allBuildFiles = (await readDirPathsRecursive(relativeCopyFromDir)).map((fileName) =>
-        join(relativeCopyFromDir, fileName),
+    const allBuildFilesSystemPathFormat = (await readDirPathsRecursive(relativeCopyFromDir)).map(
+        (fileName) => join(relativeCopyFromDir, fileName),
     );
-    const changedFiles: Readonly<string[]> = skipChangesCheck
-        ? allBuildFiles
+    const changedFilesPosixPathFormat: Readonly<string[]> = skipChangesCheck
+        ? allBuildFilesSystemPathFormat
         : await getChangedCurrentFiles(relativeCopyFromDir);
     console.info(
-        `"${changedFiles.length}" changed files detected:\n    ${changedFiles.join('\n    ')}`,
+        `"${
+            changedFilesPosixPathFormat.length
+        }" changed files detected:\n    ${changedFilesPosixPathFormat.join('\n    ')}`,
     );
 
     // these files will not be copied iteratively, so that Fleek keeps them in the output
     const filesNotChanged = skipChangesCheck
         ? []
-        : allBuildFiles.filter((allBuildFile) => {
-              return !changedFiles.includes(allBuildFile);
+        : allBuildFilesSystemPathFormat.filter((allBuildFile) => {
+              return !changedFilesPosixPathFormat.includes(toPosixPath(allBuildFile));
           });
 
     if (filesNotChanged.length) {
@@ -266,7 +268,7 @@ export async function setupForIterativeDeploy(
         console.info(`All files are new, not copying over any initial files.`);
     }
 
-    if (!skipChangesCheck && changedFiles.length === 0) {
+    if (!skipChangesCheck && changedFilesPosixPathFormat.length === 0) {
         console.info(`No changed files to deploy were detected!`);
         await pushBranch({
             branchName: fleekDeployBranchName,
@@ -307,14 +309,14 @@ export async function setupForIterativeDeploy(
     console.info('Chunking changed files...');
 
     const chunkedFiles: Readonly<string[][]> = await partitionFilesBySize(
-        changedFiles.map((changedFile) => join(process.cwd(), changedFile)),
+        changedFilesPosixPathFormat.map((changedFile) => join(process.cwd(), changedFile)),
         totalByteSizePerDeploy,
     );
     console.info(`Changed files separated into "${chunkedFiles.length}" chunks.`);
 
     return {
         chunkedFiles,
-        totalChanges: changedFiles.length,
+        totalChanges: changedFilesPosixPathFormat.length,
     };
 }
 
