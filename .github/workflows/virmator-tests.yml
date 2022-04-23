@@ -6,13 +6,15 @@ on:
             - 'test-branch-*'
 
 jobs:
-    build:
+    tests:
         runs-on: ${{ matrix.os }}
         strategy:
             fail-fast: false
             matrix:
                 os: [ubuntu-latest, windows-latest, macos-latest]
                 node-version: [16.x]
+        concurrency:
+            group: ${{ github.ref }}
         steps:
             - uses: actions/checkout@v3
               with:
