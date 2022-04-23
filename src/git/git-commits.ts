@@ -26,11 +26,13 @@ export type CommitInputs =
           commitMessage: string;
           amend?: boolean;
           noEdit?: false | undefined;
+          resetAuthor?: boolean;
       }
     | {
           commitMessage?: undefined;
           amend?: boolean;
           noEdit: true;
+          resetAuthor?: boolean;
       };
 
 export async function commitEverythingToCurrentBranch(inputs: CommitInputs): Promise<string> {
@@ -39,8 +41,9 @@ export async function commitEverythingToCurrentBranch(inputs: CommitInputs): Pro
     const amend = inputs.amend ? ' --amend' : '';
     const noEdit = inputs.noEdit ? ' --no-edit' : '';
     const message = inputs.noEdit ? '' : ` -m ${safeInterpolate(inputs.commitMessage)}`;
+    const resetAuthor = inputs.resetAuthor ? ' --reset-author' : '';
 
-    const commitCommand = `git commit${amend}${noEdit}${message}`;
+    const commitCommand = `git commit${amend}${noEdit}${resetAuthor}${message}`;
     await runShellCommand(commitCommand, {rejectOnError: true});
 
     return await getHeadCommitHash();

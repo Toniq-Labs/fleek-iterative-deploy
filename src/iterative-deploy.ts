@@ -186,6 +186,7 @@ export async function setupForIterativeDeploy(
                 // only stage cherry-pick the following commits and then amend them into the first
                 await commitEverythingToCurrentBranch({
                     amend: true,
+                    resetAuthor: true,
                     noEdit: true,
                 });
             }
@@ -272,6 +273,7 @@ export async function setupForIterativeDeploy(
     const newFullBuildCommitHash = await commitEverythingToCurrentBranch({
         commitMessage: newFullBuildCommitMessage,
         amend: true,
+        resetAuthor: true,
     });
     console.info(
         `Committed all build outputs in "${newFullBuildCommitHash}" with message\n    ${newFullBuildCommitMessage}`,
