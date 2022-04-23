@@ -5,7 +5,12 @@ import {readdir} from 'fs/promises';
 import {join} from 'path';
 import {defaultInputs} from './cli-default-inputs';
 import {fleekIterativeDeployRelativeDirPath, testIterativeDeployDir} from './file-paths';
-import {checkoutBranch, deleteBranch, getCurrentBranchName} from './git/git-branches';
+import {
+    checkoutBranch,
+    deleteBranch,
+    doesBranchExist,
+    getCurrentBranchName,
+} from './git/git-branches';
 import {DeployIterativelyInputs, setupForIterativeDeploy} from './iterative-deploy';
 
 describe(setupForIterativeDeploy.name, () => {
@@ -16,7 +21,10 @@ describe(setupForIterativeDeploy.name, () => {
             const buildFileToRun = join(testIterativeDeployDir, 'generate-files.ts');
             const testDir = testIterativeDeployDir;
 
-            await deleteBranch(defaultInputs.fleekDeployBranchName, {force: true, local: true});
+            if (await doesBranchExist(defaultInputs.fleekDeployBranchName)) {
+                await deleteBranch(defaultInputs.fleekDeployBranchName, {force: true, local: true});
+            }
+            expect(await doesBranchExist(defaultInputs.fleekDeployBranchName)).toBe(false);
 
             const randomlyGeneratedFileCount = 10;
             const deployRelativeDirName = 'deploy-from-here';
