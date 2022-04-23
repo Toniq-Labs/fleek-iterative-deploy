@@ -156,8 +156,8 @@ Your team id must be saved into the `FLEEK_TEAM_ID` env variable. To find this d
 
 The id of the Fleek site you want to operate on must be set in the `FLEEK_SITE_ID` env variable. Finding your site's id is a little trickier, in my experience. Luckily, if you have the previous two env variables set already, you can use this package to find your site ids! To find your side id, do the following:
 
-1. Make sure you've set the previous two env variables for your team id and API key.
-2. run `npx fleek-iterative-deploy --sites`
+1. Make sure you've retrieved the previous two env variables for your team id and API key.
+2. run `export FLEEK_API_KEY='insertYourKeyHere'; export FLEEK_TEAM_ID='insertYourTeamIdHere'; npx fleek-iterative-deploy --sites`
 3. Inspect the stdout output of the command. Find the site with the name you want, then copy its `id`.
 4. Save this id into the `FLEEK_SITE_ID` env variable before running the full iterative deploy command from this package.
 
