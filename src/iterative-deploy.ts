@@ -26,6 +26,7 @@ import {
     getCommitDifference,
     getCommitMessage,
     getHeadCommitHash,
+    getLastNCommits,
     stageEverything,
 } from './git/git-commits';
 import {getRefBaseName} from './git/git-shared-imports';
@@ -48,7 +49,13 @@ const forceDeployTrigger = /forcefleekdeploy!|!forcefleekdeploy/;
 export async function setupForIterativeDeploy(
     cwd: string,
     {fleekDeployBranchName, buildCommand, fleekPublicDir}: DeployIterativelyInputs,
-): Promise<Readonly<{chunkedFiles: Readonly<string[][]>; totalChanges: number}>> {
+): Promise<
+    Readonly<{
+        chunkedFiles: Readonly<string[][]>;
+        totalChanges: number;
+        abortRef: string;
+    }>
+> {
     // get and verify branch name
     const triggerBranchName =
         getRefBaseName(readEnvVar(githubRef)) || (await getCurrentBranchName());
@@ -122,10 +129,10 @@ export async function setupForIterativeDeploy(
         allowFromRemote: true,
         remoteName: gitRemoteName,
     });
-    const buildOutputBranchHeadHash = await getHeadCommitHash();
-    const buildOutputBranchHeadMessage = await getCommitMessage(buildOutputBranchHeadHash);
+    const buildOutputBranchStartingHeadHash = await getHeadCommitHash();
+    const buildOutputBranchHeadMessage = await getCommitMessage(buildOutputBranchStartingHeadHash);
     console.info(
-        `Now on branch:\n    ${await getCurrentBranchName()}\ncommit:\n    "${buildOutputBranchHeadHash}"\nmessage:\n    "${buildOutputBranchHeadMessage}"`,
+        `Now on branch:\n    ${await getCurrentBranchName()}\ncommit:\n    "${buildOutputBranchStartingHeadHash}"\nmessage:\n    "${buildOutputBranchHeadMessage}"`,
     );
 
     const previousBuildCommits = await getCommitDifference({
@@ -159,38 +166,40 @@ export async function setupForIterativeDeploy(
         )}"`,
     );
 
-    await lastFullBuildCommits
-        // reverse so we apply the commits in the order they were originally applied
-        .reverse()
-        // use reduce here so that commits don't run in parallel
-        .reduce(async (lastPromise, buildCommit, index) => {
-            await lastPromise;
-            console.info(
-                `cherry-picking build commit:\n    ${buildCommit.hash}\nwith commit message:\n    ${buildCommit.message}`,
-            );
-            const cherryPickExtraOptions =
-                index === 0
-                    ? {}
-                    : {
-                          stageOnly: true,
-                      };
+    if (lastFullBuildCommits.length) {
+        await lastFullBuildCommits
+            // reverse so we apply the commits in the order they were originally applied
+            .reverse()
+            // use reduce here so that commits don't run in parallel
+            .reduce(async (lastPromise, buildCommit, index) => {
+                await lastPromise;
+                console.info(
+                    `cherry-picking build commit:\n    ${buildCommit.hash}\nwith commit message:\n    ${buildCommit.message}`,
+                );
+                const cherryPickExtraOptions =
+                    index === 0
+                        ? {}
+                        : {
+                              stageOnly: true,
+                          };
 
-            // full cherry pick the first full build commit
-            await cherryPickCommit({
-                ...cherryPickExtraOptions,
-                commitHash: buildCommit.hash,
-                acceptAllCherryPickChanges: true,
-            });
-
-            if (index > 0) {
-                // only stage cherry-pick the following commits and then amend them into the first
-                await commitEverythingToCurrentBranch({
-                    amend: true,
-                    resetAuthor: true,
-                    noEdit: true,
+                // full cherry pick the first full build commit
+                await cherryPickCommit({
+                    ...cherryPickExtraOptions,
+                    commitHash: buildCommit.hash,
+                    acceptAllCherryPickChanges: true,
                 });
-            }
-        }, Promise.resolve());
+
+                if (index > 0) {
+                    // only stage cherry-pick the following commits and then amend them into the first
+                    await commitEverythingToCurrentBranch({
+                        amend: true,
+                        resetAuthor: true,
+                        noEdit: true,
+                    });
+                }
+            }, Promise.resolve());
+    }
 
     console.info(`Running build command: ${buildCommand}`);
     const buildCommandOutput = await runShellCommand(buildCommand, {
@@ -200,7 +209,7 @@ export async function setupForIterativeDeploy(
 
     const fileCountInFleekDeployDir = (await readdir(fullFleekDeployDirPath)).length;
     console.info(
-        `Build done. "${fileCountInFleekDeployDir}" files now in fleek deploy dir "${fullFleekDeployDirPath}"`,
+        `Build done. "${fileCountInFleekDeployDir}" files/folders now in fleek deploy dir "${fullFleekDeployDirPath}"`,
     );
 
     if (buildCommandOutput.exitCode !== 0) {
@@ -278,6 +287,7 @@ export async function setupForIterativeDeploy(
         return {
             chunkedFiles: [],
             totalChanges: 0,
+            abortRef: buildOutputBranchStartingHeadHash,
         };
     }
 
@@ -317,6 +327,7 @@ export async function setupForIterativeDeploy(
     return {
         chunkedFiles,
         totalChanges: changedFilesPosixPathFormat.length,
+        abortRef: buildOutputBranchStartingHeadHash,
     };
 }
 
@@ -326,52 +337,74 @@ export async function deployIteratively(cwd: string, inputs: DeployIterativelyIn
     const buildOutputForCopyingFrom = join(cwd, fleekIterativeDeployRelativeDirPath);
     const fullFleekDeployDirPath = join(cwd, inputs.fleekPublicDir);
 
-    const {chunkedFiles, totalChanges} = await setupForIterativeDeploy(cwd, inputs);
+    const {chunkedFiles, totalChanges, abortRef} = await setupForIterativeDeploy(cwd, inputs);
 
-    console.info(
-        `Starting chunk copying with keep structure dir of "${buildOutputForCopyingFrom}"`,
-    );
-    await chunkedFiles.reduce(async (lastPromise, currentFiles, index) => {
-        await lastPromise;
-        const message = `adding built files from index "${index}" of "${
-            chunkedFiles.length - 1
-        }" with "${currentFiles.length}" files ("${totalChanges}" total files).`;
-        console.info(message);
+    const lastTwoCommits = await getLastNCommits(2);
+
+    console.info({lastTwoCommits});
+
+    try {
         console.info(
-            `Copying "${currentFiles.length}" files to Fleek deploy dir:\n    ${currentFiles.join(
-                '\n    ',
-            )}`,
+            `Starting chunk copying with keep structure dir of "${buildOutputForCopyingFrom}"`,
         );
-        await copyFilesToDir({
-            copyToDir: fullFleekDeployDirPath,
-            files: currentFiles,
-            keepStructureFromDir: buildOutputForCopyingFrom,
-        });
-        console.info(`Making commit...`);
-        await commitEverythingToCurrentBranch({
-            commitMessage: message,
-        });
-        console.info(`Pushing branch...`);
-        await pushBranch({
-            branchName: inputs.fleekDeployBranchName,
-            remoteName: gitRemoteName,
-            force: true,
-        });
-        const deployStartTimeMs: number = Date.now();
-        console.info(`Waiting for Fleek deploy to start...`);
-        const deployDetected = await waitUntilFleekDeployStarted(deployStartTimeMs);
-        console.info(`Fleek deploy detected, waiting for it to finish...`);
-        await waitUntilAllDeploysAreFinished(deployDetected);
-        const deployEndTimeMs: number = Date.now();
-        const deployTotalTimeS: number = (deployEndTimeMs - deployStartTimeMs) / 1000;
+        await chunkedFiles.reduce(async (lastPromise, currentFiles, index) => {
+            await lastPromise;
+            const message = `adding built files from index "${index}" of "${
+                chunkedFiles.length - 1
+            }" with "${currentFiles.length}" files ("${totalChanges}" total files).`;
+            console.info(message);
+            console.info(
+                `Copying "${
+                    currentFiles.length
+                }" files to Fleek deploy dir:\n    ${currentFiles.join('\n    ')}`,
+            );
+            await copyFilesToDir({
+                copyToDir: fullFleekDeployDirPath,
+                files: currentFiles,
+                keepStructureFromDir: buildOutputForCopyingFrom,
+            });
+            console.info(`Making commit...`);
+            await commitEverythingToCurrentBranch({
+                commitMessage: message,
+            });
+            console.info(`Pushing branch...`);
+            await pushBranch({
+                branchName: inputs.fleekDeployBranchName,
+                remoteName: gitRemoteName,
+                force: true,
+            });
+            const deployStartTimeMs: number = Date.now();
+            console.info(`Waiting for Fleek deploy to start...`);
+            const deployDetected = await waitUntilFleekDeployStarted(deployStartTimeMs);
+            console.info(`Fleek deploy detected, waiting for it to finish...`);
+            await waitUntilAllDeploysAreFinished(deployDetected);
+            const deployEndTimeMs: number = Date.now();
+            const deployTotalTimeS: number = (deployEndTimeMs - deployStartTimeMs) / 1000;
 
-        console.info(`Fleek deploy finished. Took "${deployTotalTimeS}" seconds.`);
-    }, Promise.resolve());
+            console.info(`Fleek deploy finished. Took "${deployTotalTimeS}" seconds.`);
+        }, Promise.resolve());
 
-    const totalEndTimeMs: number = Date.now();
-    const totalElapsedTimeS: number = (totalEndTimeMs - totalStartTimeMs) / 1000;
+        const totalEndTimeMs: number = Date.now();
+        const totalElapsedTimeS: number = (totalEndTimeMs - totalStartTimeMs) / 1000;
 
-    console.info(
-        `All "${chunkedFiles.length}" deploys completed.\n"${totalChanges}" files deployed.\nTook "${totalElapsedTimeS}" seconds`,
-    );
+        console.info(
+            `All "${chunkedFiles.length}" deploys completed.\n"${totalChanges}" files deployed.\nTook "${totalElapsedTimeS}" seconds`,
+        );
+    } catch (error) {
+        throw error;
+    } finally {
+        if ((await getCurrentBranchName()) === inputs.fleekDeployBranchName) {
+            console.info(
+                `Error detected, aborting deploy and resetting branch "${
+                    inputs.fleekDeployBranchName
+                }" to previous ref: "${abortRef}", "${await getCommitMessage(abortRef)}"`,
+            );
+            await hardResetCurrentBranchTo(abortRef, {local: true});
+            await pushBranch({
+                branchName: inputs.fleekDeployBranchName,
+                remoteName: gitRemoteName,
+                force: true,
+            });
+        }
+    }
 }

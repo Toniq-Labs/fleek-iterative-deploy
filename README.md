@@ -163,6 +163,7 @@ The id of the Fleek site you want to operate on must be set in the `FLEEK_SITE_I
 
 ## Example
 
-The following currently use this package to deploy to the IC via Fleek.
+The following repos currently use this package to deploy to the IC via Fleek.
 
 -   https://github.com/electrovir/test-iterative-fleek-deploy
+-   https://github.com/Toniq-Labs/entrepot-app
