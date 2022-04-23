@@ -144,10 +144,10 @@ describe(readDirPathsRecursive.name, () => {
         expect(allFiles).toEqual([
             'a-file.txt',
             'b-file.txt',
-            'inner-dir/a-file.txt',
-            'inner-dir/b-file.txt',
-            'inner-dir/double-inner-dir/a-file.txt',
-            'inner-dir/double-inner-dir/b-file.txt',
+            join('inner-dir', 'a-file.txt'),
+            join('inner-dir', 'b-file.txt'),
+            join('inner-dir', 'double-inner-dir', 'a-file.txt'),
+            join('inner-dir', 'double-inner-dir', 'b-file.txt'),
         ]);
     });
 });
