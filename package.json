@@ -1,6 +1,6 @@
 {
     "name": "fleek-iterative-deploy",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Iteratively deploy Fleek from a git repo",
     "keywords": [
         "fleek",
