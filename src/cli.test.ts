@@ -70,7 +70,7 @@ describe(__filename, () => {
         async () => {
             await tryToSetEnvVariables();
             const testCommand = 'npm run "test:sites"';
-            const commandOutput = await runShellCommand(testCommand);
+            const commandOutput = await runShellCommand(testCommand, {env: process.env});
             if (commandOutput.exitCode !== 0) {
                 throw new Error(
                     `"${testCommand}" failed with exit code "${commandOutput.exitCode}": ${commandOutput.stderr}`,
