@@ -3,9 +3,10 @@
     "words": [
         "commitish",
         "dryrun",
-        "forcefleekdeploy",
         "fleekhq",
+        "forcefleekdeploy",
         "nobuild",
-        "refname"
+        "refname",
+        "toniq"
     ]
 }

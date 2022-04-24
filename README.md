@@ -21,7 +21,7 @@ Note that you will need to create a new Fleek site for this to work, as that is 
 ### 1. Install to your repo
 
 ```bash
-npm i -D fleek-iterative-deploy
+npm i -D @toniq-labs/fleek-iterative-deploy
 ```
 
 ### 2. Set environment variables
@@ -50,7 +50,7 @@ The `FLEEK_ITERATIVE_DEPLOY` branch will be managed by this package, you should 
 
 ### 4. Clear your build command from Fleek
 
-**Make sure that your Fleek deploy settings _do not have_ a build command.** `npx fleek-iterative-deploy` will run the build command for you.
+**Make sure that your Fleek deploy settings _do not have_ a build command.** `npx @toniq-labs/fleek-iterative-deploy` will run the build command for you.
 
 ### 5. Set your Fleek publicDir to `build`
 
@@ -64,14 +64,14 @@ This package will run `npm run build` to build the output which will get deploye
 
 ### 7. Create a GitHub Actions workflow
 
-Add a GitHub Actions workflow that triggers when you push to `main` (or `master` or whatever branch you wish). See an example here: https://github.com/electrovir/test-iterative-fleek-deploy/blob/main/.github/workflows/test-fleek-iterative-deploy.yml
+Add a GitHub Actions workflow that triggers when you push to `main` (or `master` or whatever branch you wish). See an example here: https://github.com/toniq-labs/test-iterative-fleek-deploy/blob/main/.github/workflows/test-fleek-iterative-deploy.yml
 
 As in the example, your workflow must at least do the following:
 
-1. set env variables so that this package can access them (see [the example file linked above](https://github.com/electrovir/test-iterative-fleek-deploy/blob/main/.github/workflows/test-fleek-iterative-deploy.yml) on how to do that, it's the part under `env:`).
-2. run `npx fleek-iterative-deploy`
+1. set env variables so that this package can access them (see [the example file linked above](https://github.com/toniq-labs/test-iterative-fleek-deploy/blob/main/.github/workflows/test-fleek-iterative-deploy.yml) on how to do that, it's the part under `env:`).
+2. run `npx @toniq-labs/fleek-iterative-deploy`
 
-In addition to those requirements, it's probably best to also include the following tips. All of these are included in [the example file linked above](https://github.com/electrovir/test-iterative-fleek-deploy/blob/main/.github/workflows/test-fleek-iterative-deploy.yml).
+In addition to those requirements, it's probably best to also include the following tips. All of these are included in [the example file linked above](https://github.com/toniq-labs/test-iterative-fleek-deploy/blob/main/.github/workflows/test-fleek-iterative-deploy.yml).
 
 1. Use concurrency with a static group and `cancel-in-progress`:
     ```
@@ -88,7 +88,7 @@ In addition to those requirements, it's probably best to also include the follow
 
 ### 8. Customize inputs
 
-If needed, customize your inputs to `npx fleek-iterative-deploy`. See the **Custom inputs** section at the bottom of the page for defaults.
+If needed, customize your inputs to `npx @toniq-labs/fleek-iterative-deploy`. See the **Custom inputs** section at the bottom of the page for defaults.
 
 ### 9. Push!
 
@@ -101,7 +101,7 @@ With everything setup in your GitHub action, simply push to your `main` branch a
 I haven't found a good way to find Fleek site ids, so here's how to get a list. It'll simply log the list of sites given your env Fleek API key and team id variables.
 
 ```bash
-export FLEEK_API_KEY='insertYourKeyHere'; export FLEEK_TEAM_ID='insertYourTeamIdHere'; npx fleek-iterative-deploy --sites
+export FLEEK_API_KEY='insertYourKeyHere'; export FLEEK_TEAM_ID='insertYourTeamIdHere'; npx @toniq-labs/fleek-iterative-deploy --sites
 ```
 
 ### Dry run
@@ -109,16 +109,16 @@ export FLEEK_API_KEY='insertYourKeyHere'; export FLEEK_TEAM_ID='insertYourTeamId
 This allows you to test inputs. All inputs will be set and logged but the iterative deploy won't run.
 
 ```bash
-npx fleek-iterative-deploy --dry-run
+npx @toniq-labs/fleek-iterative-deploy --dry-run
 ```
 
 ## Custom inputs
 
 ```bash
-npx fleek-iterative-deploy "<buildCommand>" "<fleekPublicDir>" "<fleekDeployBranchName>"
+npx @toniq-labs/fleek-iterative-deploy "<buildCommand>" "<fleekPublicDir>" "<fleekDeployBranchName>"
 ```
 
--   **`buildCommand`**: this is the bash command which `fleek-iterative-deploy` will run to build your website.
+-   **`buildCommand`**: this is the bash command which `@toniq-labs/fleek-iterative-deploy` will run to build your website.
 -   **`fleekPublicDir`**: this is the directory which Fleek is configured to deploy files from; this should match the `publicDir` property in a Fleek config file.
 -   **`fleekDeployBranchName`**: this is the branch which Fleek will deploy from. This should _not_ be the same as the branch that triggers your GitHub Action (which will probably be `main` or `master`).
 
@@ -172,7 +172,7 @@ Your team id must be saved into the `FLEEK_TEAM_ID` env variable. To find this d
 The id of the Fleek site you want to operate on must be set in the `FLEEK_SITE_ID` env variable. Finding your site's id is a little trickier, in my experience. Luckily, if you have the previous two env variables set already, you can use this package to find your site ids! To find your side id, do the following:
 
 1. Make sure you've retrieved the previous two env variables for your team id and API key.
-2. run `export FLEEK_API_KEY='insertYourKeyHere'; export FLEEK_TEAM_ID='insertYourTeamIdHere'; npx fleek-iterative-deploy --sites`
+2. run `export FLEEK_API_KEY='insertYourKeyHere'; export FLEEK_TEAM_ID='insertYourTeamIdHere'; npx @toniq-labs/fleek-iterative-deploy --sites`
 3. Inspect the stdout output of the command. Find the site with the name you want, then copy its `id`.
 4. Save this id into the `FLEEK_SITE_ID` env variable before running the full iterative deploy command from this package.
 
@@ -180,5 +180,5 @@ The id of the Fleek site you want to operate on must be set in the `FLEEK_SITE_I
 
 The following repos currently use this package to deploy to the IC via Fleek.
 
--   https://github.com/electrovir/test-iterative-fleek-deploy
+-   https://github.com/toniq-labs/test-iterative-fleek-deploy
 -   https://github.com/Toniq-Labs/entrepot-app
