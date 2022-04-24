@@ -1,6 +1,6 @@
 {
     "name": "@toniq-labs/fleek-iterative-deploy",
-    "version": "1.2.10",
+    "version": "1.2.11",
     "description": "Iteratively deploy Fleek from a git repo",
     "keywords": [
         "fleek",
