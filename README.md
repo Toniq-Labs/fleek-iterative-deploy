@@ -68,8 +68,23 @@ Add a GitHub Actions workflow that triggers when you push to `main` (or `master`
 
 As in the example, your workflow must at least do the following:
 
-1. set env variables so that this package can access them (see the [example file linked above](https://github.com/electrovir/test-iterative-fleek-deploy/blob/main/.github/workflows/test-fleek-iterative-deploy.yml) on how to do that, it's the part under `env:`).
+1. set env variables so that this package can access them (see [the example file linked above](https://github.com/electrovir/test-iterative-fleek-deploy/blob/main/.github/workflows/test-fleek-iterative-deploy.yml) on how to do that, it's the part under `env:`).
 2. run `npx fleek-iterative-deploy`
+
+In addition to those requirements, it's probably best to also include the following tips. All of these are included in [the example file linked above](https://github.com/electrovir/test-iterative-fleek-deploy/blob/main/.github/workflows/test-fleek-iterative-deploy.yml).
+
+1. Use concurrency with a static group and `cancel-in-progress`:
+    ```
+    concurrency:
+       group: 'fleek-deploy'
+       cancel-in-progress: true
+    ```
+2. Set `fetch-depth: 0` in `actions/checkout@v3`:
+    ```
+    - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+    ```
 
 ### 8. Customize inputs
 
