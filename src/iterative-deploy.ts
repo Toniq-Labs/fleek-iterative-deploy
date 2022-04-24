@@ -46,11 +46,6 @@ const allBuildOutputCommitMessage = 'add all build output';
 const noBuildTrigger = /nobuild!|!nobuild/;
 const forceDeployTrigger = /forcefleekdeploy!|!forcefleekdeploy/;
 
-async function logLastNCommits(count: number): Promise<void> {
-    const lastNCommits = await getLastNCommits(count);
-    console.log({[`last${count}Commits`]: lastNCommits});
-}
-
 export async function setupForIterativeDeploy(
     cwd: string,
     {fleekDeployBranchName, buildCommand, fleekPublicDir}: DeployIterativelyInputs,
@@ -61,7 +56,12 @@ export async function setupForIterativeDeploy(
         abortRef: string;
     }>
 > {
-    await logLastNCommits(2);
+    const last2Commits = await getLastNCommits(2);
+    if (last2Commits.length === 1) {
+        console.info(
+            `Only 1 commit detected in trigger branch. If using "actions/checkout@v3", make sure to set "fetch-depth: 0"`,
+        );
+    }
     const gitHubRef = getRefBaseName(readEnvVar(githubRef));
     const currentBranchName = await getCurrentBranchName();
     console.info({gitHubRef, currentBranchName});
@@ -80,14 +80,10 @@ export async function setupForIterativeDeploy(
 
     const fullFleekDeployDirPath = join(cwd, fleekPublicDir);
 
-    await logLastNCommits(2);
     await setFleekIterativeDeployGitUser();
-    await logLastNCommits(2);
 
     try {
-        await logLastNCommits(2);
         await updateAllFromRemote();
-        await logLastNCommits(2);
     } catch (error) {
         console.error(error);
         console.info(`\nFailed to update from remote. Proceeding anyway\n`);
@@ -116,7 +112,6 @@ export async function setupForIterativeDeploy(
     }
 
     console.info(`hard resetting branch to "${triggerBranchName}"...`);
-    await logLastNCommits(2);
     await hardResetCurrentBranchTo(triggerBranchName, {
         local: true,
     });
@@ -127,16 +122,12 @@ export async function setupForIterativeDeploy(
         throw new Error(`HEAD hash changed after resetting to the same branch we were on.`);
     }
 
-    await logLastNCommits(2);
-
     console.info(`Checking out fleekDeployBranchName: "${fleekDeployBranchName}"`);
     await definitelyCheckoutBranch({
         branchName: fleekDeployBranchName,
         allowFromRemote: true,
         remoteName: gitRemoteName,
     });
-
-    await logLastNCommits(2);
 
     const buildOutputBranchStartingHeadHash = await getHeadCommitHash();
     const buildOutputBranchHeadMessage = await getCommitMessage(buildOutputBranchStartingHeadHash);
@@ -149,8 +140,6 @@ export async function setupForIterativeDeploy(
         onThisBranch: fleekDeployBranchName,
     });
     console.info(`previous build commits:\n    ${previousBuildCommits.join('\n    ')}`);
-
-    await logLastNCommits(2);
 
     const previousBuildCommitsWithMessages = await Promise.all(
         previousBuildCommits.map(async (commitHash) => {
@@ -168,11 +157,9 @@ export async function setupForIterativeDeploy(
         `Resetting current branch ("${await getCurrentBranchName()}") to trigger branch "${triggerBranchName}" to get latest changes.`,
     );
 
-    await logLastNCommits(2);
     await hardResetCurrentBranchTo(triggerBranchName, {
         local: true,
     });
-    await logLastNCommits(2);
     const afterDeployBranchResetCommitHash = await getHeadCommitHash();
     console.info(
         `Now on "${afterDeployBranchResetCommitHash}", "${await getCommitMessage(
@@ -180,7 +167,6 @@ export async function setupForIterativeDeploy(
         )}"`,
     );
 
-    await logLastNCommits(2);
     if (lastFullBuildCommits.length) {
         await lastFullBuildCommits
             // reverse so we apply the commits in the order they were originally applied
@@ -213,18 +199,14 @@ export async function setupForIterativeDeploy(
                         noEdit: true,
                     });
                 }
-
-                await logLastNCommits(2);
             }, Promise.resolve());
     }
 
     console.info(`Running build command: ${buildCommand}`);
-    await logLastNCommits(2);
     const buildCommandOutput = await runShellCommand(buildCommand, {
         stderrCallback: (buffer) => console.error(buffer.toString()),
         stdoutCallback: (buffer) => console.info(buffer.toString()),
     });
-    await logLastNCommits(2);
 
     const fileCountInFleekDeployDir = (await readdir(fullFleekDeployDirPath)).length;
     console.info(
@@ -261,7 +243,6 @@ export async function setupForIterativeDeploy(
     const relativeCopyFromDir = relative(process.cwd(), buildOutputForCopyingFrom);
 
     console.info(`Getting changes in "${relativeCopyFromDir}"`);
-    await logLastNCommits(2);
     await stageEverything();
     const allBuildFilesSystemPathFormat = (await readDirPathsRecursive(relativeCopyFromDir)).map(
         (fileName) => join(relativeCopyFromDir, fileName),
@@ -327,13 +308,11 @@ export async function setupForIterativeDeploy(
 
     console.info(`Committing everything...`);
     const newFullBuildCommitMessage = `${allBuildOutputCommitMessage} ${new Date().toISOString()}`;
-    await logLastNCommits(2);
     const newFullBuildCommitHash = await commitEverythingToCurrentBranch({
         commitMessage: newFullBuildCommitMessage,
         amend: true,
         resetAuthor: true,
     });
-    await logLastNCommits(3);
     console.info(
         `Committed all build outputs in "${newFullBuildCommitHash}" with message\n    ${newFullBuildCommitMessage}`,
     );
@@ -360,8 +339,6 @@ export async function deployIteratively(cwd: string, inputs: DeployIterativelyIn
     const fullFleekDeployDirPath = join(cwd, inputs.fleekPublicDir);
 
     const {chunkedFiles, totalChanges, abortRef} = await setupForIterativeDeploy(cwd, inputs);
-
-    await logLastNCommits(2);
 
     try {
         console.info(
@@ -411,8 +388,6 @@ export async function deployIteratively(cwd: string, inputs: DeployIterativelyIn
             `All "${chunkedFiles.length}" deploys completed.\n"${totalChanges}" files deployed.\nTook "${totalElapsedTimeS}" seconds`,
         );
     } catch (error) {
-        throw error;
-    } finally {
         if ((await getCurrentBranchName()) === inputs.fleekDeployBranchName) {
             console.info(
                 `Error detected, aborting deploy and resetting branch "${
@@ -428,5 +403,6 @@ export async function deployIteratively(cwd: string, inputs: DeployIterativelyIn
                 force: true,
             });
         }
+        throw error;
     }
 }
